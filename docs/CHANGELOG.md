@@ -30,6 +30,7 @@ All notable project changes will be documented here.
 - Architecture, metric, demo, NFS lab, contribution, and security documentation.
 - Bounded local verification and localhost NFS lab scripts.
 - GitHub Actions macOS build-and-test workflow.
+- GitHub Actions dependencies pinned to the current v7.0.1 release commits.
 - A finite source-publication gate covering build, UI, accessibility, live
   collectors, repository history, secret scanning, and a clean clone.
 
