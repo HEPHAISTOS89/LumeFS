@@ -1,0 +1,37 @@
+name: macOS build and test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lumefs-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build and test once
+        env:
+          LUMEFS_ARTIFACTS_DIR: ${{ runner.temp }}/lumefs-check
+          LUMEFS_TIMEOUT_SECONDS: "900"
+        run: ./scripts/check.sh
+
+      - name: Upload test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lumefs-test-evidence
+          path: ${{ runner.temp }}/lumefs-check
+          if-no-files-found: warn
+          retention-days: 7

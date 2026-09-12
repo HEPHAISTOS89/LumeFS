@@ -1,0 +1,24 @@
+{
+  "Client Info": {
+    "RPC Info": {
+      "Requests": 2048,
+      "Retries": 2,
+      "TimedOut": 0,
+      "Invalid": 0
+    },
+    "NFSv3 RPC Counts": {
+      "Read": 0,
+      "Write": 0
+    },
+    "NFSv4 Operation Counts": {
+      "Read": 840,
+      "Write": 512
+    },
+    "NFSv4.1 Operation Counts": {
+      "Layoutget": 14,
+      "Layoutcommit": 8,
+      "Layoutreturn": 6,
+      "Getdevinfo": 3
+    }
+  }
+}

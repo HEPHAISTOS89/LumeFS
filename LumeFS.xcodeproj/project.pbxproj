@@ -1,0 +1,616 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1C506BBC5E5D43F3BD0912A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 94A59371FB963B8EFA4A62B5 /* Assets.xcassets */; };
+		1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F226055490C67517BA95E4D1 /* DesignSystem.swift */; };
+		25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */; };
+		27A55461F5341EBA86B1DE78 /* MonitoringStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */; };
+		2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */; };
+		2B2CE870626F7F4E8F5C8EC1 /* FileActivityCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */; };
+		2E80C6218A4FDA7FF4259173 /* APFSMetadataCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */; };
+		302852105AB69F5CD2981CBC /* LumeFSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9410F5952D4211FE68F050D0 /* LumeFSApp.swift */; };
+		3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */; };
+		35100C74ED82A8FE3D3D5419 /* AlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */; };
+		3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */; };
+		48FDB65A7E9E34A5B99473E5 /* VolumesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */; };
+		49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 744C03F1BB4954C8F902F3C9 /* SettingsView.swift */; };
+		4ED918B438A92B86DDD94CF5 /* APFSMetadataCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B667C56BD4EA8334C1CBB8 /* APFSMetadataCollector.swift */; };
+		522468FA8905E601EB7D773F /* AlertRuleEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */; };
+		52266E8E0916F536F86B5701 /* DiskBenchmark.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3883C4245505A308EED90747 /* DiskBenchmark.swift */; };
+		52A50D3852DB2A94F4C28289 /* MetricFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */; };
+		52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52F65059B3F764326636571 /* QuotaCollectorTests.swift */; };
+		5885AD3AC01810D915047CD0 /* MountCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */; };
+		617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */; };
+		67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */; };
+		72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */; };
+		74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31104582C1D6B0AEBAF87C95 /* OverviewView.swift */; };
+		7D8B1232792E5BF3A092FF04 /* WorkloadReadinessCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */; };
+		800871247CCEF24626B992ED /* MonitoringModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA82F49E8C9C0E070EF023C9 /* MonitoringModels.swift */; };
+		8B0429361256656DDF6AD54E /* PerformanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEB99EC1ABF54064672256B /* PerformanceView.swift */; };
+		8C7F53C5C88E6DEE9ED67549 /* MonitoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */; };
+		9DCFBBC08212D46A8370B70B /* FileActivityCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */; };
+		A69CF427F5C3BE5EACD3DE71 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87934E7EBB6C1DCE2D295284 /* Formatters.swift */; };
+		A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */; };
+		B6790B91284C748822CBC71F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834E5BECCD42D30BB2F05C01 /* ActivityView.swift */; };
+		C41C42B3F13BAE1FB42B237B /* pnfs-client-sample.json in Resources */ = {isa = PBXBuildFile; fileRef = 256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */; };
+		D034ACE6CD401D97E2712780 /* CollectorIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB49247D80B23783126EABED /* CollectorIntegrationTests.swift */; };
+		D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875DCB89A09565F6E509D9C9 /* NFSCollector.swift */; };
+		DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */; };
+		E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		EFC65BD42820C3E968C6A29D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 84A6AD216B538EC861EBD5E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F7ECD117C5A7301142E752B6;
+			remoteInfo = LumeFS;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveNFSIntegrationTests.swift; sourceTree = "<group>"; };
+		0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCommandRunner.swift; sourceTree = "<group>"; };
+		1DEB99EC1ABF54064672256B /* PerformanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceView.swift; sourceTree = "<group>"; };
+		254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRuleEngineTests.swift; sourceTree = "<group>"; };
+		256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "pnfs-client-sample.json"; sourceTree = "<group>"; };
+		2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricFormatterTests.swift; sourceTree = "<group>"; };
+		31104582C1D6B0AEBAF87C95 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		3883C4245505A308EED90747 /* DiskBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskBenchmark.swift; sourceTree = "<group>"; };
+		3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringStore.swift; sourceTree = "<group>"; };
+		519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileActivityCollectorTests.swift; sourceTree = "<group>"; };
+		52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculatorTests.swift; sourceTree = "<group>"; };
+		52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCommandRunnerTests.swift; sourceTree = "<group>"; };
+		5D7DAFB28EDBE0BD6F0D990A /* LumeFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LumeFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileActivityCollector.swift; sourceTree = "<group>"; };
+		744C03F1BB4954C8F902F3C9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkGuardTests.swift; sourceTree = "<group>"; };
+		834E5BECCD42D30BB2F05C01 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCollector.swift; sourceTree = "<group>"; };
+		851AEE16D98E36547FE5F68E /* LumeFSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumeFSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		875DCB89A09565F6E509D9C9 /* NFSCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSCollector.swift; sourceTree = "<group>"; };
+		87934E7EBB6C1DCE2D295284 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
+		9410F5952D4211FE68F050D0 /* LumeFSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LumeFSApp.swift; sourceTree = "<group>"; };
+		94A59371FB963B8EFA4A62B5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculator.swift; sourceTree = "<group>"; };
+		9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
+		A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockIOCollector.swift; sourceTree = "<group>"; };
+		B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringEngine.swift; sourceTree = "<group>"; };
+		CA82F49E8C9C0E070EF023C9 /* MonitoringModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringModels.swift; sourceTree = "<group>"; };
+		D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumesView.swift; sourceTree = "<group>"; };
+		D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSCollectorTests.swift; sourceTree = "<group>"; };
+		DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountCollector.swift; sourceTree = "<group>"; };
+		E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APFSMetadataCollectorTests.swift; sourceTree = "<group>"; };
+		E52F65059B3F764326636571 /* QuotaCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCollectorTests.swift; sourceTree = "<group>"; };
+		F226055490C67517BA95E4D1 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		F7B667C56BD4EA8334C1CBB8 /* APFSMetadataCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APFSMetadataCollector.swift; sourceTree = "<group>"; };
+		FB49247D80B23783126EABED /* CollectorIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectorIntegrationTests.swift; sourceTree = "<group>"; };
+		FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRuleEngine.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		00FE5470A4026A4921A93FEA /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */,
+				E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */,
+				834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */,
+				FB49247D80B23783126EABED /* CollectorIntegrationTests.swift */,
+				519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */,
+				095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */,
+				2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */,
+				D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */,
+				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
+				52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */,
+				52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		1C656D575CDE26F9EB83BB39 /* System */ = {
+			isa = PBXGroup;
+			children = (
+				F7B667C56BD4EA8334C1CBB8 /* APFSMetadataCollector.swift */,
+				A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */,
+				3883C4245505A308EED90747 /* DiskBenchmark.swift */,
+				702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */,
+				DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */,
+				875DCB89A09565F6E509D9C9 /* NFSCollector.swift */,
+				847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */,
+				0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */,
+			);
+			path = System;
+			sourceTree = "<group>";
+		};
+		2093FAAE0CF6E5E20BF3AA41 /* Monitoring */ = {
+			isa = PBXGroup;
+			children = (
+				FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */,
+				BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */,
+				96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */,
+			);
+			path = Monitoring;
+			sourceTree = "<group>";
+		};
+		2DF3E887CE9B205575E0E4A8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5D7DAFB28EDBE0BD6F0D990A /* LumeFS.app */,
+				851AEE16D98E36547FE5F68E /* LumeFSTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3CB6C4FFD1703B6AE41FD8E1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				CA82F49E8C9C0E070EF023C9 /* MonitoringModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		54B8EBEA39148F1FF3344413 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				F226055490C67517BA95E4D1 /* DesignSystem.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		725FEE8962713E507D6B4FD5 = {
+			isa = PBXGroup;
+			children = (
+				86B85B12C0911C4CF44FF77A /* Resources */,
+				9DD86C33D0CDFEEBD1CFD81B /* Sources */,
+				00FE5470A4026A4921A93FEA /* Tests */,
+				2DF3E887CE9B205575E0E4A8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		86B85B12C0911C4CF44FF77A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				94A59371FB963B8EFA4A62B5 /* Assets.xcassets */,
+				C988A49AA4404C7247E2EEA4 /* Fixtures */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		9DD86C33D0CDFEEBD1CFD81B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				9F3EBD129173A3052C5D8DF3 /* App */,
+				54B8EBEA39148F1FF3344413 /* Design */,
+				3CB6C4FFD1703B6AE41FD8E1 /* Models */,
+				2093FAAE0CF6E5E20BF3AA41 /* Monitoring */,
+				1C656D575CDE26F9EB83BB39 /* System */,
+				BBCB4246C8807961322A1B2A /* Utilities */,
+				F0D1647E4A3EE149913ADE21 /* Views */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		9F3EBD129173A3052C5D8DF3 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */,
+				9410F5952D4211FE68F050D0 /* LumeFSApp.swift */,
+				3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		BBCB4246C8807961322A1B2A /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				87934E7EBB6C1DCE2D295284 /* Formatters.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		C988A49AA4404C7247E2EEA4 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		F0D1647E4A3EE149913ADE21 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				834E5BECCD42D30BB2F05C01 /* ActivityView.swift */,
+				9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */,
+				31104582C1D6B0AEBAF87C95 /* OverviewView.swift */,
+				1DEB99EC1ABF54064672256B /* PerformanceView.swift */,
+				744C03F1BB4954C8F902F3C9 /* SettingsView.swift */,
+				D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		9E44C9EE7992AFB150C18B9B /* LumeFSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 41DCE6B4DFAA82ADF8B862FD /* Build configuration list for PBXNativeTarget "LumeFSTests" */;
+			buildPhases = (
+				6B10A311EE1CC95EC895B262 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				9DF62AEAF2839C1AD87F9BD5 /* PBXTargetDependency */,
+			);
+			name = LumeFSTests;
+			packageProductDependencies = (
+			);
+			productName = LumeFSTests;
+			productReference = 851AEE16D98E36547FE5F68E /* LumeFSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		F7ECD117C5A7301142E752B6 /* LumeFS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCEE66C735051B0E968F0756 /* Build configuration list for PBXNativeTarget "LumeFS" */;
+			buildPhases = (
+				7ACBCE15D024AFDB1E1997E9 /* Sources */,
+				910725B4D3BDB1D82EA1B4E6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LumeFS;
+			packageProductDependencies = (
+			);
+			productName = LumeFS;
+			productReference = 5D7DAFB28EDBE0BD6F0D990A /* LumeFS.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		84A6AD216B538EC861EBD5E5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = 1CED5BE8D1DF2410E0C0176F /* Build configuration list for PBXProject "LumeFS" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 725FEE8962713E507D6B4FD5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2DF3E887CE9B205575E0E4A8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F7ECD117C5A7301142E752B6 /* LumeFS */,
+				9E44C9EE7992AFB150C18B9B /* LumeFSTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		910725B4D3BDB1D82EA1B4E6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1C506BBC5E5D43F3BD0912A0 /* Assets.xcassets in Resources */,
+				C41C42B3F13BAE1FB42B237B /* pnfs-client-sample.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		6B10A311EE1CC95EC895B262 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2E80C6218A4FDA7FF4259173 /* APFSMetadataCollectorTests.swift in Sources */,
+				522468FA8905E601EB7D773F /* AlertRuleEngineTests.swift in Sources */,
+				DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */,
+				D034ACE6CD401D97E2712780 /* CollectorIntegrationTests.swift in Sources */,
+				9DCFBBC08212D46A8370B70B /* FileActivityCollectorTests.swift in Sources */,
+				3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */,
+				52A50D3852DB2A94F4C28289 /* MetricFormatterTests.swift in Sources */,
+				67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */,
+				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
+				3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */,
+				617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7ACBCE15D024AFDB1E1997E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4ED918B438A92B86DDD94CF5 /* APFSMetadataCollector.swift in Sources */,
+				B6790B91284C748822CBC71F /* ActivityView.swift in Sources */,
+				25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */,
+				35100C74ED82A8FE3D3D5419 /* AlertsView.swift in Sources */,
+				E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */,
+				A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */,
+				1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */,
+				52266E8E0916F536F86B5701 /* DiskBenchmark.swift in Sources */,
+				2B2CE870626F7F4E8F5C8EC1 /* FileActivityCollector.swift in Sources */,
+				A69CF427F5C3BE5EACD3DE71 /* Formatters.swift in Sources */,
+				302852105AB69F5CD2981CBC /* LumeFSApp.swift in Sources */,
+				8C7F53C5C88E6DEE9ED67549 /* MonitoringEngine.swift in Sources */,
+				800871247CCEF24626B992ED /* MonitoringModels.swift in Sources */,
+				27A55461F5341EBA86B1DE78 /* MonitoringStore.swift in Sources */,
+				5885AD3AC01810D915047CD0 /* MountCollector.swift in Sources */,
+				D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */,
+				74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */,
+				8B0429361256656DDF6AD54E /* PerformanceView.swift in Sources */,
+				72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */,
+				49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */,
+				2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */,
+				48FDB65A7E9E34A5B99473E5 /* VolumesView.swift in Sources */,
+				7D8B1232792E5BF3A092FF04 /* WorkloadReadinessCalculator.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		9DF62AEAF2839C1AD87F9BD5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F7ECD117C5A7301142E752B6 /* LumeFS */;
+			targetProxy = EFC65BD42820C3E968C6A29D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		3DAD4FA41C7BA1CA02073EEF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		6753E82072120943EBC3EF63 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hephaistos.LumeFSTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LumeFS.app/Contents/MacOS/LumeFS";
+			};
+			name = Debug;
+		};
+		8C6B26BF59B4C9EBE8C6D4E3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = targeted;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		8E7EB3F177445D64F5CD074A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hephaistos.LumeFSTests;
+				SDKROOT = macosx;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LumeFS.app/Contents/MacOS/LumeFS";
+			};
+			name = Release;
+		};
+		B3EF268A9ED24349B4F7E912 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LumeFS;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hephaistos.LumeFS;
+				PRODUCT_NAME = LumeFS;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		C920639D0505CCE49D686A6B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = LumeFS;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.hephaistos.LumeFS;
+				PRODUCT_NAME = LumeFS;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1CED5BE8D1DF2410E0C0176F /* Build configuration list for PBXProject "LumeFS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8C6B26BF59B4C9EBE8C6D4E3 /* Debug */,
+				3DAD4FA41C7BA1CA02073EEF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		41DCE6B4DFAA82ADF8B862FD /* Build configuration list for PBXNativeTarget "LumeFSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6753E82072120943EBC3EF63 /* Debug */,
+				8E7EB3F177445D64F5CD074A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BCEE66C735051B0E968F0756 /* Build configuration list for PBXNativeTarget "LumeFS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B3EF268A9ED24349B4F7E912 /* Debug */,
+				C920639D0505CCE49D686A6B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 84A6AD216B538EC861EBD5E5 /* Project object */;
+}
