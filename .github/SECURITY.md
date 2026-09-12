@@ -2,8 +2,8 @@
 
 ## Supported version
 
-LumeFS has no published release yet. Security fixes are currently evaluated
-against the latest revision of the default branch.
+Security fixes are evaluated against the latest `1.x` source release and the
+latest revision of the default branch.
 
 ## Reporting a vulnerability
 
@@ -16,7 +16,7 @@ issue.
 Include the affected commit and macOS version, entry point, required privileges,
 exact observed behavior, a minimal synthetic reproduction, and the crossed
 trust boundary. No response-time or disclosure deadline is promised while the
-project remains an unreleased prototype.
+project remains a hackathon prototype.
 
 ## Current security boundary
 

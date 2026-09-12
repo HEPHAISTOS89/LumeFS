@@ -22,7 +22,11 @@ a signed production binary.
 | Live APFS root integration | 1 passed, 0 skipped, 0 failures |
 | Live localhost NFSv3 integration | 2 passed, 0 skipped, 0 failures |
 | Working-tree secret scan | No findings |
+| Full reachable Git history secret scan | 2 commits scanned, no findings |
+| Repository integrity and dependency audit | `git fsck --full --strict` passed; no submodules or external packages |
 | Unsigned arm64 Release build | Passed |
+| Remote clean-clone check and unsigned Release build | Passed with a clean checkout before and after |
+| GitHub Actions macOS build-and-test job | Passed on the source candidate |
 | Release idle/runtime smoke observation | 32 seconds, no fatal/crash pattern, no benchmark workspace left behind |
 | Native UI/AX smoke pass | LumeFS Overview rendered with live metrics and an accessible chart summary |
 

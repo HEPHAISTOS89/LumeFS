@@ -1,9 +1,8 @@
 # Changelog
 
-All notable project changes will be documented here. The project has not yet
-published a release; everything below is unreleased.
+All notable project changes will be documented here.
 
-## [Unreleased]
+## [1.0.0] - 2026-09-12
 
 ### Added
 
