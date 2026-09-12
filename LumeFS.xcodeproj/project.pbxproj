@@ -38,9 +38,11 @@
 		A69CF427F5C3BE5EACD3DE71 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87934E7EBB6C1DCE2D295284 /* Formatters.swift */; };
 		A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */; };
 		B6790B91284C748822CBC71F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834E5BECCD42D30BB2F05C01 /* ActivityView.swift */; };
+		B9497211E4AAAFB510857424 /* MonitoringStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */; };
 		C41C42B3F13BAE1FB42B237B /* pnfs-client-sample.json in Resources */ = {isa = PBXBuildFile; fileRef = 256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */; };
 		D034ACE6CD401D97E2712780 /* CollectorIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB49247D80B23783126EABED /* CollectorIntegrationTests.swift */; };
 		D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875DCB89A09565F6E509D9C9 /* NFSCollector.swift */; };
+		D530592825F84CC9315F577C /* Lucide-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8A32BE2D055DCA02855E1353 /* Lucide-LICENSE.txt */; };
 		DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */; };
 		E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */; };
 /* End PBXBuildFile section */
@@ -69,6 +71,7 @@
 		52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculatorTests.swift; sourceTree = "<group>"; };
 		52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCommandRunnerTests.swift; sourceTree = "<group>"; };
 		5D7DAFB28EDBE0BD6F0D990A /* LumeFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LumeFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringStoreTests.swift; sourceTree = "<group>"; };
 		702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileActivityCollector.swift; sourceTree = "<group>"; };
 		744C03F1BB4954C8F902F3C9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkGuardTests.swift; sourceTree = "<group>"; };
@@ -77,6 +80,7 @@
 		851AEE16D98E36547FE5F68E /* LumeFSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumeFSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		875DCB89A09565F6E509D9C9 /* NFSCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSCollector.swift; sourceTree = "<group>"; };
 		87934E7EBB6C1DCE2D295284 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
+		8A32BE2D055DCA02855E1353 /* Lucide-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Lucide-LICENSE.txt"; sourceTree = "<group>"; };
 		9410F5952D4211FE68F050D0 /* LumeFSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LumeFSApp.swift; sourceTree = "<group>"; };
 		94A59371FB963B8EFA4A62B5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculator.swift; sourceTree = "<group>"; };
@@ -107,6 +111,7 @@
 				519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */,
 				095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */,
 				2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */,
+				6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */,
 				D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */,
 				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
 				52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */,
@@ -179,6 +184,7 @@
 			isa = PBXGroup;
 			children = (
 				94A59371FB963B8EFA4A62B5 /* Assets.xcassets */,
+				8A32BE2D055DCA02855E1353 /* Lucide-LICENSE.txt */,
 				C988A49AA4404C7247E2EEA4 /* Fixtures */,
 			);
 			path = Resources;
@@ -313,6 +319,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1C506BBC5E5D43F3BD0912A0 /* Assets.xcassets in Resources */,
+				D530592825F84CC9315F577C /* Lucide-LICENSE.txt in Resources */,
 				C41C42B3F13BAE1FB42B237B /* pnfs-client-sample.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -331,6 +338,7 @@
 				9DCFBBC08212D46A8370B70B /* FileActivityCollectorTests.swift in Sources */,
 				3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */,
 				52A50D3852DB2A94F4C28289 /* MetricFormatterTests.swift in Sources */,
+				B9497211E4AAAFB510857424 /* MonitoringStoreTests.swift in Sources */,
 				67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */,
 				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
 				3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */,

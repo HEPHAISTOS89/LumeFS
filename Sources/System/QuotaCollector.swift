@@ -17,7 +17,7 @@ struct QuotaCollector: Sendable {
 
     func parse(output: String, at date: Date = Date()) -> [QuotaSnapshot] {
         let normalized = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        if normalized.isEmpty || normalized.localizedCaseInsensitiveContains("none") {
+        if normalized.isEmpty || normalized.lowercased() == "none" || normalized.lowercased().hasSuffix(": none") {
             return [
                 unavailableSnapshot(
                     message: "No file-system quota is configured for the current user.",

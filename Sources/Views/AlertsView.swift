@@ -4,44 +4,31 @@ struct AlertsView: View {
     @Bindable var store: MonitoringStore
 
     var body: some View {
-        HSplitView {
-            List(store.alerts, selection: $store.selectedAlertID) { alert in
-                HStack(alignment: .top, spacing: 10) {
-                    Image(systemName: alert.severity.symbolName)
-                        .foregroundStyle(alert.severity.color)
-                        .frame(width: 20)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(alert.title)
-                            .fontWeight(.medium)
-                        Text(alert.message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                        Text(alert.createdAt, style: .relative)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(.vertical, 4)
-                .tag(alert.id)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(
-                    "\(alert.severity.label) alert, \(alert.title). \(alert.message). Observed \(alert.createdAt.formatted(date: .abbreviated, time: .shortened))"
-                )
-            }
-            .frame(
-                minWidth: LayoutMetrics.listMinimumWidth,
-                idealWidth: LayoutMetrics.listIdealWidth
+        if store.alerts.isEmpty {
+            EmptyStateView(
+                symbol: store.lastUpdated == nil ? "bell" : "checkmark.circle",
+                title: store.lastUpdated == nil ? "No measurements yet" : "No active alerts",
+                message: store.lastUpdated == nil
+                    ? "Resume monitoring or refresh to evaluate alerts."
+                    : "No alert was raised from the available measurements."
             )
-            .overlay {
-                if store.alerts.isEmpty {
-                    EmptyStateView(
-                        symbol: "checkmark.circle",
-                        title: "No active alerts",
-                        message: "LumeFS will explain capacity, device, and NFS issues here."
-                    )
-                }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            alertColumns
+        }
+    }
+
+    private var alertColumns: some View {
+        HStack(spacing: 0) {
+            List(store.alerts, selection: $store.selectedAlertID) { alert in
+                alertRow(alert)
+                    .tag(alert.id)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(alert.severity.label). \(alert.title). \(alert.message)")
             }
+            .frame(minWidth: LayoutMetrics.listMinimumWidth, idealWidth: LayoutMetrics.listIdealWidth, maxWidth: LayoutMetrics.listIdealWidth)
+
+            Divider()
 
             Group {
                 if let alert = store.selectedAlert {
@@ -57,6 +44,21 @@ struct AlertsView: View {
             .frame(minWidth: LayoutMetrics.detailMinimumWidth)
         }
     }
+    private func alertRow(_ alert: MonitoringAlert) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            ProductIcon(systemName: alert.severity.symbolName)
+                .foregroundStyle(alert.severity.color)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(alert.title).fontWeight(.medium)
+                Text(alert.message).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
 }
 
 private struct AlertDetailView: View {
@@ -67,8 +69,8 @@ private struct AlertDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: alert.severity.symbolName)
-                        .font(.system(size: 28))
+                    ProductIcon(systemName: alert.severity.symbolName)
+                        .frame(width: 28, height: 28)
                         .foregroundStyle(alert.severity.color)
                         .accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 4) {
@@ -85,7 +87,8 @@ private struct AlertDetailView: View {
 
                 ProvenanceBadge(provenance: alert.provenance)
 
-                GroupBox("Evidence") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Evidence").font(.headline).accessibilityAddTraits(.isHeader)
                     Text(alert.evidence)
                         .font(.body.monospaced())
                         .textSelection(.enabled)
@@ -93,13 +96,16 @@ private struct AlertDetailView: View {
                         .padding(.vertical, 8)
                 }
 
-                GroupBox("Recommended next step") {
-                    Label(alert.recommendation, systemImage: "arrow.right.circle")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Recommended next step").font(.headline).accessibilityAddTraits(.isHeader)
+                    ProductLabel(alert.recommendation, systemImage: "arrow.right.circle")
+                        .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 8)
                 }
 
-                GroupBox("Operator actions") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Actions").font(.headline).accessibilityAddTraits(.isHeader)
                     VStack(alignment: .leading, spacing: 10) {
                         ViewThatFits(in: .horizontal) {
                             HStack(spacing: 10) {
@@ -111,8 +117,8 @@ private struct AlertDetailView: View {
                             }
                         }
 
-                        Label(
-                            "Actions only navigate or refresh evidence. LumeFS never deletes files, repairs disks, or changes mounts.",
+                        ProductLabel(
+                            "Read-only actions · no files or mounts changed",
                             systemImage: "hand.raised"
                         )
                         .font(.caption)
@@ -123,7 +129,16 @@ private struct AlertDetailView: View {
                     .padding(.vertical, 8)
                 }
 
-                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                DisclosureGroup("Rule details") {
+                    ruleDetails
+                }
+            }
+            .padding(LayoutMetrics.pageInset)
+        }
+    }
+
+    private var ruleDetails: some View {
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
                     GridRow {
                         Text("Rule")
                             .foregroundStyle(.secondary)
@@ -140,10 +155,7 @@ private struct AlertDetailView: View {
                         Text(alert.createdAt.formatted(date: .abbreviated, time: .standard))
                     }
                 }
-                .accessibilityElement(children: .contain)
-            }
-            .padding(LayoutMetrics.pageInset)
-        }
+        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -153,7 +165,7 @@ private struct AlertDetailView: View {
                 store.selectedVolumeID = volumeID
                 store.selectedSection = .volumes
             } label: {
-                Label("Inspect related volume", systemImage: "internaldrive")
+                ProductLabel("Inspect related volume", systemImage: "internaldrive")
             }
             .buttonStyle(.borderedProminent)
         }
@@ -161,7 +173,7 @@ private struct AlertDetailView: View {
         Button {
             Task { await store.refreshNow() }
         } label: {
-            Label("Refresh evidence", systemImage: "arrow.clockwise")
+            ProductLabel("Refresh evidence", systemImage: "arrow.clockwise")
         }
         .buttonStyle(.bordered)
     }

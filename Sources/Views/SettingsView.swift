@@ -1,11 +1,26 @@
 import SwiftUI
 
 struct SettingsView: View {
+    @AppStorage("appearancePreference") private var appearancePreference = "system"
+    @AppStorage("interfaceAnimations") private var interfaceAnimations = true
     @AppStorage("capacityWarningThreshold") private var warningThreshold = 20.0
     @AppStorage("capacityCriticalThreshold") private var criticalThreshold = 10.0
 
     var body: some View {
         Form {
+            Section("Appearance") {
+                Picker("Theme", selection: $appearancePreference) {
+                    ForEach(AppAppearance.allCases) { appearance in
+                        Text(appearance.title).tag(appearance.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                Toggle("Animate value changes", isOn: $interfaceAnimations)
+                Text("Animations also respect Reduce Motion in macOS.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Section("Capacity thresholds") {
                 LabeledContent("Warning") {
                     Text("\(warningThreshold, specifier: "%.0f")% free")
@@ -39,6 +54,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .padding(20)
-        .frame(width: 500, height: 430)
+        .frame(width: 500, height: 560)
     }
 }

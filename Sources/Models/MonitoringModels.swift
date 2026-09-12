@@ -60,6 +60,13 @@ struct VolumeSnapshot: Identifiable, Codable, Hashable, Sendable {
     var apfsVolumeQuotaBytes: Int64?
     var apfsVolumeReserveBytes: Int64?
 
+    func capacitySeverity(thresholds: CapacityThresholds) -> HealthSeverity {
+        guard totalBytes > 0 else { return .notice }
+        if availableFraction < thresholds.criticalFreeFraction { return .critical }
+        if availableFraction < thresholds.warningFreeFraction { return .warning }
+        return .healthy
+    }
+
     var usedBytes: Int64 {
         max(0, totalBytes - availableBytes)
     }
@@ -167,6 +174,28 @@ struct QuotaSnapshot: Identifiable, Codable, Hashable, Sendable {
     let provenance: DataProvenance
 }
 
+
+extension QuotaSnapshot {
+    /// Exact filesystem matching only; raw all-filesystem output is not a numeric limit.
+    func applies(to volume: VolumeSnapshot) -> Bool {
+        mountPoint == volume.mountPoint || mountPoint == volume.source
+    }
+
+    var remainingBytes: Int64? {
+        guard provenance == .live, let usedBytes, usedBytes >= 0 else { return nil }
+        let limits = [softLimitBytes, hardLimitBytes].compactMap { $0 }.filter { $0 > 0 }
+        guard let limit = limits.min() else { return nil }
+        return max(0, limit - usedBytes)
+    }
+
+    var limitSeverity: HealthSeverity? {
+        guard provenance == .live, let usedBytes, usedBytes >= 0 else { return nil }
+        if let hardLimitBytes, hardLimitBytes > 0, usedBytes >= hardLimitBytes { return .critical }
+        if let softLimitBytes, softLimitBytes > 0, usedBytes >= softLimitBytes { return .warning }
+        return nil
+    }
+}
+
 struct ActivityEvent: Identifiable, Codable, Hashable, Sendable {
     let id: UUID
     let timestamp: Date
@@ -222,6 +251,8 @@ struct WorkloadReadiness: Equatable, Sendable {
     let workloadBytes: Int64
     let requiredBytesWithMargin: Int64
     let headroomBytes: Int64
+    let availableBytes: Int64
+    let quotaLimited: Bool
     let fits: Bool
 }
 
@@ -245,4 +276,26 @@ struct SystemSnapshot: Sendable {
     let quotas: [QuotaSnapshot]
     let alerts: [MonitoringAlert]
     let capturedAt: Date
+}
+
+/// Separate series prevent a line from implying measurements across a collection gap.
+struct IOChartPoint: Identifiable {
+    let sample: DeviceIOSample
+    let segment: Int
+    var id: UUID { sample.id }
+
+    static func make(from samples: [DeviceIOSample], maximumGap: TimeInterval = 10) -> [Self] {
+        var points: [Self] = []
+        var segment = 0
+        var previousDate: Date?
+        for sample in samples {
+            if let previousDate {
+                let interval = sample.timestamp.timeIntervalSince(previousDate)
+                if interval <= 0 || interval > maximumGap { segment += 1 }
+            }
+            points.append(Self(sample: sample, segment: segment))
+            previousDate = sample.timestamp
+        }
+        return points
+    }
 }

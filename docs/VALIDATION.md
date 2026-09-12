@@ -61,3 +61,21 @@ outside this validation record.
 - Automated XCUITest, a long Instruments run, Developer ID signing, notarizing,
   and Gatekeeper assessment belong to the separate production-binary gate in
   [Verification and release gates](VERIFICATION.md).
+
+
+## Local follow-up candidate — native design and quota integration
+
+This section supersedes earlier counts for the updated local candidate, not the original source release:
+
+- Final functional suite before publication: 55 tests, 53 passed, two expected NFS skips, zero failures.
+- Separately, the read-only localhost NFSv3 lab was mounted and both live NFS tests passed with no skips. Cleanup was checked: managed export, mount and lab directory absent; nfsd stopped, its preexisting enabled state unchanged.
+- Real APFS free capacity agreed with the app's rounded display and configured capacity alert.
+- Real FSEvents create/modify/rename/remove operations were observed under an owned disposable folder; watching stopped and probe removed.
+- Monitoring pause froze retained samples; resume produced new samples. Chart gaps remain visible rather than fabricated.
+- System/light/dark themes and preference persistence were inspected. Vector assets are attributed in ICONOGRAPHY.md.
+- Quota limits now influence placement and alerts. Regression tests cover filesystem names containing `none`, unrelated quotas and replay exclusion. No enforced remote quota was available for live validation.
+- Current macOS nfs(5) says native-client pNFS is unsupported. Layout-counter parsing or a fixture does not override this limitation.
+- Keyboard sidebar navigation and Settings/refresh shortcuts were exercised. Exhaustive focus traversal is not certified.
+- VoiceOver was activated through its first-run dialog and stopped afterward. Automated retrieval of spoken phrases failed; no claim of complete VoiceOver validation is made.
+
+No signed/notarized production binary is certified by these checks.

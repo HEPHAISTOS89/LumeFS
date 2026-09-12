@@ -45,7 +45,8 @@ actor MonitoringEngine {
             samples: currentSamples,
             nfs: cachedNFS,
             previousNFS: previousNFS,
-            capacityThresholds: thresholds
+            capacityThresholds: thresholds,
+            quotas: cachedQuotas
         )
 
         return SystemSnapshot(

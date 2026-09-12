@@ -5,18 +5,23 @@ struct WorkloadReadinessCalculator: Sendable {
 
     func evaluate(
         volume: VolumeSnapshot,
-        workloadGibibytes: Int
+        workloadGibibytes: Int,
+        quota: QuotaSnapshot? = nil
     ) -> WorkloadReadiness {
         let workloadBytes = Int64(max(0, workloadGibibytes)) * 1_073_741_824
         let marginBytes = Int64(Double(workloadBytes) * safetyMargin)
         let required = addingSafely(workloadBytes, marginBytes)
-        let headroom = volume.availableBytes - workloadBytes
+        let quotaRemaining = quota.flatMap { $0.applies(to: volume) ? $0.remainingBytes : nil }
+        let available = min(max(0, volume.availableBytes), quotaRemaining ?? Int64.max)
+        let headroom = available - workloadBytes
 
         return WorkloadReadiness(
             workloadBytes: workloadBytes,
             requiredBytesWithMargin: required,
             headroomBytes: headroom,
-            fits: volume.availableBytes >= required
+            availableBytes: available,
+            quotaLimited: quotaRemaining.map { $0 < volume.availableBytes } ?? false,
+            fits: !volume.isReadOnly && volume.totalBytes > 0 && available >= required
         )
     }
 

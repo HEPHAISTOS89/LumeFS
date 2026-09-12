@@ -46,12 +46,10 @@ actor SystemCommandRunner {
         _ executable: SystemExecutable,
         arguments: [String]
     ) async throws -> CommandOutput {
+        try Task.checkCancellation()
         try validate(executable, arguments: arguments)
 
         let process = Process()
-        let standardOutput = Pipe()
-        let standardError = Pipe()
-
         process.executableURL = URL(fileURLWithPath: executable.rawValue)
         process.arguments = arguments
         process.environment = [
@@ -60,35 +58,54 @@ actor SystemCommandRunner {
             "LC_ALL": "C",
             "PATH": "/usr/bin:/usr/sbin:/bin:/sbin"
         ]
+        return try await runProcess(process, executable: executable)
+    }
+
+    // Kept separate so lifecycle tests can use harmless, disposable child processes.
+    // Production callers enter through run(_:arguments:) and its strict allowlist.
+    func runProcess(
+        _ process: Process,
+        executable: SystemExecutable,
+        timeout: Duration = .seconds(5)
+    ) async throws -> CommandOutput {
+        try Task.checkCancellation()
+        let standardOutput = Pipe()
+        let standardError = Pipe()
         process.standardOutput = standardOutput
         process.standardError = standardError
 
-        try process.run()
-
-        let deadline = ContinuousClock.now.advanced(by: .seconds(5))
-        while process.isRunning, ContinuousClock.now < deadline {
-            try await Task.sleep(for: .milliseconds(20))
+        let outputReader = try BoundedCommandOutputReader(handle: standardOutput.fileHandleForReading)
+        let errorReader = try BoundedCommandOutputReader(handle: standardError.fileHandleForReading)
+        defer {
+            try? standardOutput.fileHandleForReading.close()
+            try? standardError.fileHandleForReading.close()
         }
 
-        guard !process.isRunning else {
-            process.terminate()
-            try? await Task.sleep(for: .milliseconds(200))
+        try process.run()
+        defer {
+            // Cancellation, timeout and oversized output must not leave a collector running.
             if process.isRunning {
                 kill(process.processIdentifier, SIGKILL)
-                process.waitUntilExit()
             }
-            throw CommandRunnerError.timedOut(executable)
+            // Foundation owns child reaping. Never block a cooperative executor here.
         }
 
-        let outputData = standardOutput.fileHandleForReading.readDataToEndOfFile()
-        let errorData = standardError.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        let maximumOutputBytes = 1_048_576
-        guard outputData.count <= maximumOutputBytes,
-              errorData.count <= maximumOutputBytes else {
-            throw CommandRunnerError.outputTooLarge(executable)
+        let deadline = ContinuousClock.now.advanced(by: timeout)
+        var outputData = Data()
+        var errorData = Data()
+        while true {
+            try Task.checkCancellation()
+            try outputReader.drain(into: &outputData, executable: executable)
+            try errorReader.drain(into: &errorData, executable: executable)
+            guard process.isRunning else { break }
+            guard ContinuousClock.now < deadline else {
+                throw CommandRunnerError.timedOut(executable)
+            }
+            try await Task.sleep(for: .milliseconds(20))
         }
+        // Capture bytes written between the last drain and process exit.
+        try outputReader.drain(into: &outputData, executable: executable)
+        try errorReader.drain(into: &errorData, executable: executable)
 
         let output = CommandOutput(
             standardOutput: outputData,
@@ -138,6 +155,39 @@ actor SystemCommandRunner {
         guard !argument.isEmpty, argument.utf8.count <= 4_096 else { return false }
         return !argument.unicodeScalars.contains { scalar in
             CharacterSet.controlCharacters.contains(scalar)
+        }
+    }
+}
+
+/// Drains a pipe without blocking the actor or growing memory beyond the fixed limit.
+struct BoundedCommandOutputReader {
+    let handle: FileHandle
+    let maximumBytes: Int
+
+    init(handle: FileHandle, maximumBytes: Int = 1_048_576) throws {
+        self.handle = handle
+        self.maximumBytes = maximumBytes
+        let descriptor = handle.fileDescriptor
+        let flags = fcntl(descriptor, F_GETFL)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) >= 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+    }
+
+    func drain(into data: inout Data, executable: SystemExecutable) throws {
+        var buffer = [UInt8](repeating: 0, count: 8192)
+        while true {
+            let count = Darwin.read(handle.fileDescriptor, &buffer, buffer.count)
+            if count == 0 { return }
+            if count < 0 {
+                if errno == EINTR { continue }
+                if errno == EAGAIN || errno == EWOULDBLOCK { return }
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+            guard data.count <= maximumBytes - count else {
+                throw CommandRunnerError.outputTooLarge(executable)
+            }
+            data.append(contentsOf: buffer.prefix(count))
         }
     }
 }

@@ -4,7 +4,7 @@ This lab creates a read-only NFSv3 export restricted to the IPv4 loopback host.
 It is useful for checking that LumeFS discovers an NFS mount and reads local
 NFS client counters.
 
-It does **not** validate pNFS. macOS's local `nfsd` configuration used here does
+It does **not** validate pNFS. On the validated macOS 26.6.2 host, `man 5 nfs` explicitly states that pNFS is not supported by the native client; an external server alone does not remove this client limitation. macOS's local `nfsd` configuration used here does
 not create a pNFS metadata/data-server topology, and a successful NFS mount is
 not evidence of parallel data paths.
 

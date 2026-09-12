@@ -8,9 +8,9 @@ struct ActivityView: View {
         VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
             ScreenHeader(
                 title: "Activity",
-                subtitle: "Explainable state changes, without inspecting file contents"
+                subtitle: "Storage changes, in order"
             ) {
-                Text("\(store.activity.count) events")
+                Text(store.activity.count == 1 ? "1 event" : "\(store.activity.count) events")
                     .font(.callout.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("\(store.activity.count) activity events")
@@ -26,49 +26,50 @@ struct ActivityView: View {
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(store.activity) { event in
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: symbol(for: event))
-                            .foregroundStyle(event.provenance == .benchmark ? .purple : .secondary)
-                            .frame(width: 22)
-                            .accessibilityHidden(true)
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(event.eventDescription)
-                                .fontWeight(.medium)
-                            HStack(spacing: 8) {
-                                Text(event.displayPath)
-                                Text("·")
-                                Text(event.timestamp, style: .relative)
-                            }
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(store.activity) { event in
+                            activityRow(event)
+                            if event.id != store.activity.last?.id { Divider() }
                         }
-
-                        Spacer()
-                        ProvenanceBadge(provenance: event.provenance)
                     }
-                    .padding(.vertical, 5)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel(
-                        "\(event.eventDescription) \(event.displayPath). \(event.timestamp.formatted(date: .abbreviated, time: .shortened)). Data source \(event.provenance.rawValue.lowercased())."
-                    )
                 }
-                .listStyle(.inset)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
-            Label(
-                "Folder monitoring is session-only. LumeFS keeps a redacted folder label and state transitions, not full paths or file contents.",
-                systemImage: "hand.raised"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityLabel(
-                "Privacy: Folder monitoring is session only. LumeFS keeps a redacted folder label and state transitions. It does not retain full paths or read file contents."
-            )
+            ProductLabel("Session only · no file contents read", systemImage: "hand.raised")
+                .font(.caption).foregroundStyle(.secondary)
         }
         .padding(LayoutMetrics.pageInset)
+    }
+
+    private func activityRow(_ event: ActivityEvent) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            ProductIcon(systemName: symbol(for: event))
+                .foregroundStyle(event.provenance == .benchmark ? .purple : .secondary)
+                .frame(width: 22)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.eventDescription)
+                    .fontWeight(.medium)
+                HStack(spacing: 8) {
+                    Text(event.displayPath)
+                    Text("·")
+                    Text(event.timestamp, style: .relative)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+            ProvenanceBadge(provenance: event.provenance)
+        }
+        .padding(.vertical, 12)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(event.eventDescription) \(event.displayPath). \(event.timestamp.formatted(date: .abbreviated, time: .shortened)). Data source \(event.provenance.rawValue.lowercased())."
+        )
     }
 
     private var folderWatchControls: some View {
@@ -88,10 +89,11 @@ struct ActivityView: View {
                 }
 
                 if let error = store.fileActivityError {
-                    Label(error, systemImage: "exclamationmark.triangle")
+                    ProductLabel(error, systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(.orange)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .lineLimit(3)
+                        .help(error)
                         .accessibilityLabel("Folder monitoring error: \(error)")
                 }
             }
@@ -101,7 +103,7 @@ struct ActivityView: View {
 
     private var folderWatchStatus: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(
+            ProductLabel(
                 store.watchedFolderLabel.map { "Watching \($0)" } ?? "No folder watched",
                 systemImage: store.watchedFolderLabel == nil ? "folder" : "folder.badge.gearshape"
             )

@@ -34,7 +34,7 @@ Show the running Overview. Point out the last-updated indicator.
 > replay evidence, and estimates visibly separate. One label never substitutes
 > for another.
 
-Show Current I/O, Capacity risk, NFS retries, the volume list, and recent alerts.
+Show Current I/O, Lowest free space, NFS retries, the volume list, and the priority alert.
 Change the AI workload size once and point to the `ESTIMATE` badge and fixed 20%
 safety margin. Do not claim an alert exists if the view says there are none.
 
@@ -65,15 +65,14 @@ benchmark numbers.
 
 ### 1:55–2:25 — NFS and pNFS boundary
 
-Return to Overview and point to the NFS card.
+Stay in Performance and scroll to the NFS section.
 
 > NFS counters are system-wide client totals from `nfsstat`. LumeFS can flag
 > new retries or timeouts. A non-zero layout counter means a pNFS-related client
 > operation was observed, but it does not prove that this mount or workload used
 > a parallel data path.
 
-If live layout counters are absent, select **Preview deterministic pNFS
-evidence** and point out the `REPLAY` badge and “Does not replace live counters”
+If live layout counters are absent, select **Show example** and point out the `REPLAY` badge and “Does not replace live counters”
 copy. If the local lab is mounted, identify it as a read-only localhost **NFSv3**
 lab. Never present either as a live pNFS topology test.
 
@@ -104,3 +103,11 @@ If a collector is unavailable, demonstrate the unavailable state, the bundled
 replay as `REPLAY`, the deterministic tests, and the metric contract. Do not
 relabel a mockup, fixture, benchmark, replay, estimate, or old screenshot as live
 output.
+
+## Future work (challenge bonus)
+
+- Validate a real NFSv4.1/pNFS metadata/data-server setup, including network loss and recovery.
+- Validate enforced user quotas and grace periods on a disposable server. Current-user soft/hard limits are displayed, alerted and included conservatively in placement when reported.
+- Add workload/process attribution before making model-specific performance claims.
+- Measure incident diagnosis time against Activity Monitor plus command-line tools with the same tasks and operators; do not assert superiority before that comparison.
+- Complete production accessibility, Instruments, signing and notarization gates.

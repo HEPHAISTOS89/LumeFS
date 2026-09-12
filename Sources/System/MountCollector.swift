@@ -72,7 +72,7 @@ struct MountCollector: Sendable {
     }
 
     private func shouldDisplay(mountPoint: String, typeName: String) -> Bool {
-        if mountPoint == "/" { return true }
+        if mountPoint == "/" || mountPoint == "/System/Volumes/Data" { return true }
         if mountPoint.hasPrefix("/Volumes/") { return true }
         if typeName.lowercased().contains("nfs") { return true }
         return false

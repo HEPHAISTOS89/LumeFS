@@ -6,10 +6,26 @@ struct AlertRuleEngine: Sendable {
         samples: [DeviceIOSample],
         nfs: NFSClientMetrics,
         previousNFS: NFSClientMetrics?,
-        capacityThresholds: CapacityThresholds = .default
+        capacityThresholds: CapacityThresholds = .default,
+        quotas: [QuotaSnapshot] = []
     ) -> [MonitoringAlert] {
         var alerts = volumeAlerts(volumes, thresholds: capacityThresholds)
         alerts.append(contentsOf: deviceAlerts(samples))
+        alerts.append(contentsOf: quotas.compactMap { quota in
+            guard let severity = quota.limitSeverity else { return nil }
+            return MonitoringAlert(
+                id: "quota-\(quota.id)",
+                ruleID: "user.quota.\(severity == .critical ? "hard" : "soft")",
+                severity: severity,
+                title: severity == .critical ? "User quota reached" : "User soft quota reached",
+                message: "\(quota.subject) on \(quota.mountPoint)",
+                evidence: "Used \(MetricFormatter.bytes(quota.usedBytes ?? 0)); soft \(quota.softLimitBytes.map(MetricFormatter.bytes) ?? "none"); hard \(quota.hardLimitBytes.map(MetricFormatter.bytes) ?? "none")",
+                recommendation: "Free files you own or ask the storage administrator about your limit. Soft-limit grace periods are not evaluated.",
+                relatedVolumeID: volumes.first { quota.applies(to: $0) }?.id,
+                createdAt: quota.capturedAt,
+                provenance: quota.provenance
+            )
+        })
         alerts.append(contentsOf: nfsAlerts(current: nfs, previous: previousNFS))
 
         return alerts.sorted {
@@ -41,7 +57,8 @@ struct AlertRuleEngine: Sendable {
                 )
             }
 
-            if volume.availableFraction < thresholds.criticalFreeFraction {
+            let capacitySeverity = volume.capacitySeverity(thresholds: thresholds)
+            if capacitySeverity == .critical {
                 return capacityAlert(
                     for: volume,
                     severity: .critical,
@@ -49,7 +66,7 @@ struct AlertRuleEngine: Sendable {
                 )
             }
 
-            if volume.availableFraction < thresholds.warningFreeFraction {
+            if capacitySeverity == .warning {
                 return capacityAlert(
                     for: volume,
                     severity: .warning,

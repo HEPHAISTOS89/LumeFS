@@ -155,7 +155,7 @@ a downloadable app binary, add and pass:
 - privacy-canary scanning of screenshots, logs, and exports;
 - a Release Instruments run measuring refresh latency, CPU, memory growth, main
   thread stalls, and a single bounded benchmark;
-- streaming stdout/stderr enforcement in `SystemCommandRunner`;
+- regression coverage of streaming stdout/stderr limits in `SystemCommandRunner`;
 - canonical mount-inventory validation immediately before `diskutil` launch;
 - Developer ID signing, `codesign --verify --deep --strict`, notarization,
   stapling, and Gatekeeper assessment.
@@ -165,8 +165,8 @@ unsigned development builds.
 
 ## Known boundaries
 
-- command output above one MiB is rejected after child completion rather than
-  stopped while streaming;
+- command stdout and stderr are each capped at one MiB during nonblocking
+  collection; command cleanup terminates the child on a limit violation;
 - the `diskutil` variable path originates from the OS mount inventory but is not
   independently canonicalized inside the runner;
 - mount paths, device names, quota output, usernames, and watched-root labels can

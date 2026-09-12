@@ -4,20 +4,35 @@ struct VolumesView: View {
     @Bindable var store: MonitoringStore
 
     var body: some View {
-        HSplitView {
+        if store.volumes.isEmpty {
+            EmptyStateView(
+                symbol: "internaldrive",
+                title: "No volumes",
+                message: "No volume data is available. Resume monitoring or refresh to check again."
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            volumeColumns
+        }
+    }
+
+    private var volumeColumns: some View {
+        HStack(spacing: 0) {
             volumeList
                 .frame(
                     minWidth: LayoutMetrics.listMinimumWidth,
-                    idealWidth: LayoutMetrics.listIdealWidth
+                    idealWidth: LayoutMetrics.listIdealWidth,
+                    maxWidth: LayoutMetrics.listIdealWidth
                 )
+
+            Divider()
 
             Group {
                 if let volume = store.selectedVolume {
                     VolumeDetailView(
                         volume: volume,
                         quota: quota(for: volume),
-                        samples: store.ioHistory,
-                        ioProvenance: store.ioProvenance
+                        showPerformance: { store.selectedSection = .performance }
                     )
                 } else {
                     EmptyStateView(
@@ -44,58 +59,50 @@ struct VolumesView: View {
 
     private var volumeList: some View {
         List(store.volumes, selection: $store.selectedVolumeID) { volume in
-            HStack(spacing: 10) {
-                Image(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack {
-                        Text(volume.name)
-                            .fontWeight(.medium)
-                        Spacer()
-                        Text(volume.fileSystem.rawValue)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                    ProgressView(value: volume.usedFraction)
-                        .tint(volume.capacityTint)
-                    Text("\(MetricFormatter.bytes(volume.availableBytes)) available")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .padding(.vertical, 4)
-            .tag(volume.id)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(
-                "\(volume.name), \(volume.fileSystem.rawValue), \(MetricFormatter.percentage(volume.usedFraction)) used, \(MetricFormatter.bytes(volume.availableBytes)) available"
-            )
-        }
-        .overlay {
-            if store.volumes.isEmpty {
-                EmptyStateView(
-                    symbol: "internaldrive",
-                    title: "No volumes",
-                    message: "No user-visible APFS or NFS volume was found."
-                )
-            }
+            volumeRow(volume)
+                .tag(volume.id)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(volume.name), \(volume.fileSystem.rawValue), \(MetricFormatter.bytes(volume.availableBytes)) available")
         }
     }
+
+    private func volumeRow(_ volume: VolumeSnapshot) -> some View {
+        HStack(spacing: 10) {
+            ProductIcon(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
+                .foregroundStyle(.secondary)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(volume.name).fontWeight(.medium)
+                    Spacer()
+                    Text(volume.fileSystem.rawValue).font(.caption2).foregroundStyle(.secondary)
+                }
+                CapacityMeter(volume: volume)
+                Text("\(MetricFormatter.bytes(volume.availableBytes)) available")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
 }
 
 private struct VolumeDetailView: View {
     let volume: VolumeSnapshot
     let quota: QuotaSnapshot?
-    let samples: [DeviceIOSample]
-    let ioProvenance: DataProvenance
+    let showPerformance: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 identity
                 capacity
-                ioChart
                 quotaSection
+                Button(action: showPerformance) {
+                    ProductLabel("View all-device I/O", systemImage: "chart.xyaxis.line")
+                }
+                .help("Device throughput cannot be attributed to this volume.")
                 metadata
             }
             .padding(LayoutMetrics.pageInset)
@@ -104,8 +111,8 @@ private struct VolumeDetailView: View {
 
     private var identity: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
-                .font(.system(size: 28))
+            ProductIcon(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
+                .frame(width: 28, height: 28)
                 .foregroundStyle(.secondary)
             VStack(alignment: .leading, spacing: 3) {
                 Text(volume.name)
@@ -118,12 +125,13 @@ private struct VolumeDetailView: View {
                     .textSelection(.enabled)
             }
             Spacer()
-            StatusLabel(severity: volume.capacitySeverity)
+            CapacityStatusView(volume: volume)
         }
     }
 
     private var capacity: some View {
-        GroupBox("Capacity") {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Capacity").font(.headline).accessibilityAddTraits(.isHeader)
             VStack(alignment: .leading, spacing: 10) {
                 CapacityMeter(volume: volume)
                 HStack {
@@ -138,45 +146,34 @@ private struct VolumeDetailView: View {
         }
     }
 
-    private var ioChart: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Whole-device throughput")
-                        .font(.headline)
-                    Text("Live block-storage counters are not attributed to this volume")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                ProvenanceBadge(provenance: ioProvenance)
-            }
-            if samples.isEmpty {
-                ProgressView("Collecting I/O samples…")
-                    .frame(maxWidth: .infinity, minHeight: 170)
-            } else {
-                ThroughputChart(samples: samples)
-                    .frame(height: 190)
-            }
-        }
-    }
-
     private var quotaSection: some View {
-        GroupBox("Quota") {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Current-user quota").font(.headline).accessibilityAddTraits(.isHeader)
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: quota?.provenance == .live ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.questionmark")
+                ProductIcon(systemName: quota?.provenance == .live ? "person.crop.circle.badge.checkmark" : "person.crop.circle.badge.questionmark")
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(quota?.subject ?? "Current user")
                         .fontWeight(.medium)
-                    Text(quota?.message ?? "Quota information is unavailable.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
+                    if let quota, let severity = quota.limitSeverity {
+                        ProductLabel(severity == .critical ? "Hard limit reached" : "Soft limit reached", systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(severity == .critical ? Color.red : Color.orange)
+                    }
                     if let quota, let usedBytes = quota.usedBytes {
                         Text(quotaSummary(quota, usedBytes: usedBytes))
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
+                            .font(.callout.monospacedDigit())
+                    } else {
+                        Text(quota?.provenance == .live ? "No structured limits reported" : "No quota data available")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
+                    if let quota {
+                        DisclosureGroup("Source details") {
+                            Text(quota.message)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .padding(.top, 4)
+                        }
                     }
                 }
                 Spacer()
@@ -196,15 +193,17 @@ private struct VolumeDetailView: View {
     }
 
     private var metadata: some View {
-        GroupBox("File-system details") {
+        DisclosureGroup("File-system details") {
             VStack(alignment: .leading, spacing: 10) {
                 detailRow("Format", volume.fileSystemName.uppercased())
                 detailRow("Source", volume.source)
                 detailRow("Local", volume.isLocal ? "Yes" : "No")
                 detailRow("Read only", volume.isReadOnly ? "Yes" : "No")
                 detailRow("SMART", volume.smartStatus ?? "Unavailable")
-                detailRow("APFS volume quota", volume.apfsVolumeQuotaBytes.map(MetricFormatter.bytes) ?? "Not configured")
-                detailRow("APFS reserve", volume.apfsVolumeReserveBytes.map(MetricFormatter.bytes) ?? "Not configured")
+                if volume.fileSystem == .apfs {
+                    detailRow("APFS volume quota", volume.apfsVolumeQuotaBytes.map(MetricFormatter.bytes) ?? "Not reported")
+                    detailRow("APFS reserve", volume.apfsVolumeReserveBytes.map(MetricFormatter.bytes) ?? "Not reported")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 6)

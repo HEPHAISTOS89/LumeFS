@@ -6,7 +6,16 @@ struct AppShellView: View {
     var body: some View {
         NavigationSplitView {
             List(AppSection.allCases, selection: $store.selectedSection) { section in
-                Label(section.rawValue, systemImage: section.symbolName)
+                Label {
+                    Text(section.rawValue)
+                } icon: {
+                    Image(section.navigationAsset)
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                        .accessibilityHidden(true)
+                }
                     .tag(section)
             }
             .navigationSplitViewColumnWidth(min: 190, ideal: 220, max: 260)
@@ -15,33 +24,43 @@ struct AppShellView: View {
             destination
                 .navigationTitle(store.selectedSection?.rawValue ?? "LumeFS")
                 .toolbar {
-                    ToolbarItemGroup(placement: .primaryAction) {
-                        CollectionStatusView(
-                            isMonitoring: store.isMonitoring,
-                            lastUpdated: store.lastUpdated
-                        )
-
-                        Button {
-                            Task { await store.refreshNow() }
-                        } label: {
-                            Label("Refresh", systemImage: "arrow.clockwise")
-                        }
-                        .help("Refresh now (⌘R)")
-
-                        Button {
-                            store.isMonitoring ? store.stop() : store.start()
-                        } label: {
-                            Label(
-                                store.isMonitoring ? "Pause" : "Resume",
-                                systemImage: store.isMonitoring ? "pause.fill" : "play.fill"
-                            )
-                        }
-                        .help(store.isMonitoring ? "Pause monitoring" : "Resume monitoring")
+                    if #available(macOS 26.0, *) {
+                        statusItem.sharedBackgroundVisibility(.hidden)
+                        ToolbarSpacer(.fixed, placement: .primaryAction)
+                    } else {
+                        statusItem
                     }
+                    monitoringActions
                 }
         }
         .task {
             store.start()
+        }
+    }
+
+    private var statusItem: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            CollectionStatusView(isMonitoring: store.isMonitoring, lastUpdated: store.lastUpdated)
+        }
+    }
+
+    private var monitoringActions: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                Task { await store.refreshNow() }
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .help("Refresh now (⌘R)")
+            .disabled(store.isRefreshing)
+
+            Button {
+                store.isMonitoring ? store.stop() : store.start()
+            } label: {
+                Label(store.isMonitoring ? "Pause" : "Resume",
+                      systemImage: store.isMonitoring ? "pause" : "play")
+            }
+            .help(store.isMonitoring ? "Pause monitoring" : "Resume monitoring")
         }
     }
 
@@ -67,23 +86,45 @@ private struct CollectionStatusView: View {
     let lastUpdated: Date?
 
     var body: some View {
-        HStack(spacing: 6) {
-            Circle()
-                .fill(isMonitoring ? Color.green : Color.secondary)
-                .frame(width: 7, height: 7)
-                .accessibilityHidden(true)
-
-            if let lastUpdated {
-                Text(lastUpdated, style: .relative)
-            } else {
-                Text("Starting…")
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let status = CollectionFreshness.evaluate(
+                isMonitoring: isMonitoring,
+                lastUpdated: lastUpdated,
+                now: context.date
+            )
+            HStack(spacing: 6) {
+                Image(systemName: symbol(for: status))
+                    .foregroundStyle(color(for: status))
+                    .accessibilityHidden(true)
+                Text(status.rawValue)
+                if status == .delayed, let lastUpdated {
+                    Text(lastUpdated, style: .relative)
+                        .monospacedDigit()
+                }
             }
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .help(lastUpdated.map {
+                "Last snapshot: \($0.formatted(date: .omitted, time: .standard))"
+            } ?? "Waiting for the first snapshot")
+            .accessibilityElement(children: .combine)
         }
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            isMonitoring ? "Monitoring active" : "Monitoring paused"
-        )
+    }
+
+    private func symbol(for status: CollectionFreshness) -> String {
+        switch status {
+        case .current: "checkmark.circle"
+        case .delayed: "exclamationmark.clock"
+        case .connecting: "arrow.triangle.2.circlepath"
+        case .paused: "pause.circle"
+        }
+    }
+
+    private func color(for status: CollectionFreshness) -> Color {
+        switch status {
+        case .current: .green
+        case .delayed: .orange
+        case .connecting, .paused: .secondary
+        }
     }
 }

@@ -8,11 +8,10 @@ struct OverviewView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 header
+                attentionSection
                 metricStrip
                 readinessSection
                 throughputSection
-                volumeSection
-                recentAlertsSection
             }
             .padding(LayoutMetrics.pageInset)
         }
@@ -44,10 +43,18 @@ struct OverviewView: View {
                 InsetPanel {
                     VStack(spacing: 0) {
                         ForEach(store.volumes) { volume in
-                            WorkloadReadinessRow(
-                                volume: volume,
-                                workloadGiB: store.plannedWorkloadGiB
-                            )
+                            Button {
+                                store.selectedVolumeID = volume.id
+                                store.selectedSection = .volumes
+                            } label: {
+                                WorkloadReadinessRow(
+                                    volume: volume,
+                                    workloadGiB: store.plannedWorkloadGiB,
+                                    quota: store.quotas.first { $0.applies(to: volume) }
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .help("Inspect \(volume.name)")
                             if volume.id != store.volumes.last?.id {
                                 Divider()
                             }
@@ -60,9 +67,9 @@ struct OverviewView: View {
 
     private var readinessTitle: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text("AI workload placement")
+            Text("Where will it fit?")
                 .font(.headline)
-            Text("Checks capacity for a model or checkpoint plus a 20% safety margin")
+            Text("Model or checkpoint · includes 20% extra space")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -86,20 +93,18 @@ struct OverviewView: View {
             title: "Storage overview",
             subtitle: "\(store.volumes.count) volume\(store.volumes.count == 1 ? "" : "s") monitored · \(store.alerts.count) active alert\(store.alerts.count == 1 ? "" : "s")"
         ) {
-            StatusLabel(severity: store.overallSeverity)
+            if store.lastUpdated == nil {
+                Text(store.isMonitoring ? "Connecting…" : "Not collecting").foregroundStyle(.secondary)
+            } else {
+                Text("On this Mac").font(.callout).foregroundStyle(.secondary)
+            }
         }
     }
 
     private var metricStrip: some View {
         InsetPanel {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 0) {
-                    metricCells(vertical: false)
-                }
-
-                VStack(spacing: 0) {
-                    metricCells(vertical: true)
-                }
+            HStack(spacing: 0) {
+                metricCells(vertical: false)
             }
             .padding(.vertical, 12)
         }
@@ -109,8 +114,8 @@ struct OverviewView: View {
     private func metricCells(vertical: Bool) -> some View {
         MetricCell(
             title: "Current I/O",
-            value: MetricFormatter.throughput(store.totalBytesPerSecond),
-            detail: "Read + write",
+            value: store.ioProvenance == .unavailable ? "—" : MetricFormatter.throughput(store.totalBytesPerSecond),
+            detail: store.ioProvenance == .unavailable ? "Unavailable" : "All devices · read + write",
             symbol: "arrow.up.arrow.down"
         )
         Divider()
@@ -126,7 +131,7 @@ struct OverviewView: View {
         MetricCell(
             title: "NFS retries",
             value: store.nfsMetrics.provenance == .live ? "\(store.nfsMetrics.retries)" : "—",
-            detail: store.nfsMetrics.pNFSObserved ? "pNFS observed" : "pNFS not observed",
+            detail: store.nfsMetrics.provenance == .unavailable ? "Unavailable" : "Client total · cumulative",
             symbol: "network"
         )
         .frame(minHeight: vertical ? 56 : nil)
@@ -135,90 +140,59 @@ struct OverviewView: View {
     private var throughputSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Block-storage throughput")
+                Text("Read & write")
                     .font(.headline)
                 Spacer()
                 ProvenanceBadge(provenance: store.ioProvenance)
             }
 
             if store.ioHistory.isEmpty {
-                ProgressView("Collecting I/O samples…")
-                    .frame(maxWidth: .infinity, minHeight: 190)
+                EmptyStateView(
+                    symbol: "chart.xyaxis.line",
+                    title: store.isMonitoring && store.lastUpdated == nil ? "Connecting to storage" : "I/O unavailable",
+                    message: "Device samples will appear here when available."
+                )
+                .frame(maxWidth: .infinity, minHeight: 160)
             } else {
                 ThroughputChart(samples: store.ioHistory)
-                    .frame(height: 220)
+                    .frame(height: 190)
             }
         }
         .accessibilityElement(children: .contain)
     }
 
-    private var volumeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Volumes")
-                    .font(.headline)
-                Spacer()
-                Button("View all") {
-                    store.selectedSection = .volumes
-                }
-                .buttonStyle(.link)
-            }
-
-            if store.volumes.isEmpty {
-                EmptyStateView(
-                    symbol: "internaldrive",
-                    title: "No supported volumes",
-                    message: "LumeFS is waiting for an APFS or NFS volume."
-                )
-                .frame(minHeight: 130)
-            } else {
-                InsetPanel {
-                    VStack(spacing: 0) {
-                        ForEach(store.volumes.prefix(5)) { volume in
-                            VolumeSummaryRow(volume: volume)
-                            if volume.id != store.volumes.prefix(5).last?.id {
-                                Divider()
-                            }
+    private var attentionSection: some View {
+        Group {
+            if let alert = store.alerts.first {
+                Button {
+                    store.selectedAlertID = alert.id
+                    store.selectedSection = .alerts
+                } label: {
+                    HStack(spacing: 12) {
+                        ProductIcon(systemName: alert.severity.symbolName)
+                            .font(.title2)
+                            .foregroundStyle(alert.severity.color)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(alert.title).font(.headline)
+                            Text(alert.message)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
                         }
+                        Spacer()
+                        ProductLabel("Inspect", systemImage: "chevron.right")
+                            .font(.callout.weight(.medium))
+                            .foregroundStyle(.tint)
                     }
+                    .padding(16)
+                    .background(alert.severity.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                    .contentShape(Rectangle())
                 }
-            }
-        }
-    }
-
-    private var recentAlertsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Recent alerts")
-                    .font(.headline)
-                Spacer()
-                if !store.alerts.isEmpty {
-                    Button("View all") {
-                        store.selectedSection = .alerts
-                    }
-                    .buttonStyle(.link)
-                }
-            }
-
-            if store.alerts.isEmpty {
-                InsetPanel {
-                    Label("No active alerts", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .accessibilityLabel("Status: no active alerts")
-                }
-            } else {
-                InsetPanel {
-                    VStack(spacing: 0) {
-                        ForEach(store.alerts.prefix(3)) { alert in
-                            AlertSummaryRow(alert: alert)
-                            if alert.id != store.alerts.prefix(3).last?.id {
-                                Divider()
-                            }
-                        }
-                    }
-                }
+                .buttonStyle(.plain)
+                .help("Open the evidence and next step for this alert")
+            } else if store.lastUpdated != nil {
+                ProductLabel("No active alerts in collected data", systemImage: "checkmark.circle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -234,41 +208,81 @@ struct OverviewView: View {
 private struct WorkloadReadinessRow: View {
     let volume: VolumeSnapshot
     let workloadGiB: Int
+    let quota: QuotaSnapshot?
 
     private var result: WorkloadReadiness {
         WorkloadReadinessCalculator().evaluate(
             volume: volume,
-            workloadGibibytes: workloadGiB
+            workloadGibibytes: workloadGiB,
+            quota: quota
         )
+    }
+
+    private var status: String {
+        if volume.isReadOnly { return "Read only" }
+        if volume.totalBytes <= 0 { return "Unknown" }
+        if result.quotaLimited && !result.fits { return "Quota limited" }
+        return result.fits ? "Capacity fits" : "Too large"
+    }
+
+    private var symbol: String {
+        if volume.isReadOnly { return "lock" }
+        if volume.totalBytes <= 0 { return "questionmark.circle" }
+        return result.fits ? "checkmark.circle" : "exclamationmark.triangle"
+    }
+
+    private var statusColor: Color {
+        if volume.isReadOnly || volume.totalBytes <= 0 { return .secondary }
+        return result.fits ? .green : .orange
+    }
+
+    private var detail: String {
+        if volume.isReadOnly { return "Read-only volume · cannot receive files" }
+        if volume.totalBytes <= 0 { return "Capacity unavailable" }
+        if result.quotaLimited {
+            return "\(MetricFormatter.bytes(result.availableBytes)) within user quota · soft limit treated conservatively"
+        }
+        if result.fits {
+            return "\(MetricFormatter.bytes(max(0, volume.availableBytes - result.requiredBytesWithMargin))) spare after margin"
+        }
+        return "Needs \(MetricFormatter.bytes(max(0, result.requiredBytesWithMargin - volume.availableBytes))) more"
     }
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: result.fits ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundStyle(result.fits ? .green : .orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(volume.name)
-                    .fontWeight(.medium)
-                Text(
-                    result.fits
-                        ? "Fits with \(MetricFormatter.bytes(result.headroomBytes)) left before margin"
-                        : "Needs \(MetricFormatter.bytes(max(0, result.requiredBytesWithMargin - volume.availableBytes))) more free space"
-                )
-                .font(.caption)
+            ProductIcon(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
+                .font(.title3)
                 .foregroundStyle(.secondary)
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(volume.name).fontWeight(.medium)
+                    Text(volume.fileSystem.rawValue)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Text(detail).font(.caption).foregroundStyle(.secondary)
             }
-            Spacer()
-            Text(result.fits ? "Ready" : "At risk")
-                .font(.callout.weight(.medium))
-                .foregroundStyle(result.fits ? .green : .orange)
+            Spacer(minLength: 12)
+            VStack(alignment: .trailing, spacing: 4) {
+                ProductLabel(status, systemImage: symbol)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(statusColor)
+                Text("\(MetricFormatter.bytes(volume.availableBytes)) free")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            ProductIcon(systemName: "chevron.right")
+                .font(.caption).foregroundStyle(.tertiary)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(14)
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 }
 
 private struct MetricCell: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("interfaceAnimations") private var interfaceAnimations = true
     let title: String
     let value: String
     let detail: String
@@ -276,7 +290,7 @@ private struct MetricCell: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: symbol)
+            ProductIcon(systemName: symbol)
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .frame(width: 28)
@@ -286,16 +300,22 @@ private struct MetricCell: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(value)
+                    .contentTransition(.numericText())
+                    .animation(reduceMotion || !interfaceAnimations ? nil : .easeInOut(duration: 0.22), value: value)
                     .font(.title3.weight(.semibold))
                     .monospacedDigit()
                 Text(detail)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2, reservesSpace: true)
             }
             Spacer(minLength: 12)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue("\(value). \(detail)")
     }
 }
 
@@ -311,39 +331,12 @@ struct ThroughputChart: View {
             RuleMark(y: .value("Zero", 0))
                 .foregroundStyle(.separator.opacity(0.8))
 
-            ForEach(displayedSamples) { sample in
-                AreaMark(
-                    x: .value("Time", sample.timestamp),
-                    y: .value("Read bytes per second", sample.readBytesPerSecond),
-                    series: .value("Direction", "Read")
-                )
-                .foregroundStyle(
-                    .linearGradient(
-                        colors: [.blue.opacity(0.22), .blue.opacity(0.01)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.linear)
-
-                AreaMark(
-                    x: .value("Time", sample.timestamp),
-                    y: .value("Write bytes per second", sample.writeBytesPerSecond),
-                    series: .value("Direction", "Write")
-                )
-                .foregroundStyle(
-                    .linearGradient(
-                        colors: [.teal.opacity(0.18), .teal.opacity(0.01)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .interpolationMethod(.linear)
-
+            ForEach(IOChartPoint.make(from: Array(displayedSamples))) { point in
+                let sample = point.sample
                 LineMark(
                     x: .value("Time", sample.timestamp),
                     y: .value("Read bytes per second", sample.readBytesPerSecond),
-                    series: .value("Direction", "Read")
+                    series: .value("Read segment", "Read \(point.segment)")
                 )
                 .foregroundStyle(by: .value("Direction", "Read"))
                 .interpolationMethod(.linear)
@@ -352,11 +345,11 @@ struct ThroughputChart: View {
                 LineMark(
                     x: .value("Time", sample.timestamp),
                     y: .value("Write bytes per second", sample.writeBytesPerSecond),
-                    series: .value("Direction", "Write")
+                    series: .value("Write segment", "Write \(point.segment)")
                 )
                 .foregroundStyle(by: .value("Direction", "Write"))
                 .interpolationMethod(.linear)
-                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
+                .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 3]))
 
                 if sample.id == displayedSamples.last?.id {
                     PointMark(
@@ -381,6 +374,7 @@ struct ThroughputChart: View {
         ])
         .chartLegend(position: .top, alignment: .trailing, spacing: 12)
         .chartYScale(domain: .automatic(includesZero: true))
+        .chartXScale(range: .plotDimension(startPadding: 8, endPadding: 24))
         .chartPlotStyle { plotArea in
             plotArea
                 .background(.quaternary.opacity(0.14))
@@ -398,12 +392,18 @@ struct ThroughputChart: View {
             }
         }
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 5)) {
+            AxisMarks(values: .automatic(desiredCount: 5)) { value in
                 AxisGridLine()
                     .foregroundStyle(.separator.opacity(0.35))
-                AxisValueLabel(format: .dateTime.minute().second())
+                AxisValueLabel(anchor: .topTrailing) {
+                    if let date = value.as(Date.self) {
+                        Text(date, format: .dateTime.minute().second())
+                            .fixedSize()
+                    }
+                }
             }
         }
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel("Read and write throughput over time")
         .accessibilityValue(accessibilitySummary)
     }
@@ -422,7 +422,7 @@ struct VolumeSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
+            ProductIcon(systemName: volume.fileSystem == .nfs ? "network" : "internaldrive")
                 .foregroundStyle(.secondary)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
@@ -454,7 +454,7 @@ struct AlertSummaryRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: alert.severity.symbolName)
+            ProductIcon(systemName: alert.severity.symbolName)
                 .foregroundStyle(alert.severity.color)
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {

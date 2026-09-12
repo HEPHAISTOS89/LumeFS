@@ -46,6 +46,43 @@ final class AlertRuleEngineTests: XCTestCase {
         XCTAssertEqual(alerts.first?.evidence, "24% free; threshold: 25%")
     }
 
+    func testDisplayAndAlertUseSameCustomThreshold() {
+        let volume = makeVolume(total: 1000, available: 240)
+        let thresholds = CapacityThresholds(warningFreeFraction: 0.30, criticalFreeFraction: 0.25)
+        let severity = volume.capacitySeverity(thresholds: thresholds)
+        let alerts = AlertRuleEngine().evaluate(volumes: [volume], samples: [], nfs: .unavailable,
+                                               previousNFS: nil, capacityThresholds: thresholds)
+        XCTAssertEqual(severity, .critical)
+        XCTAssertEqual(alerts.first?.severity, severity)
+    }
+
+    func testMissingCapacityIsNotHealthy() {
+        let volume = makeVolume(total: 0, available: 0)
+        XCTAssertEqual(volume.capacitySeverity(thresholds: .default), .notice)
+    }
+
+    func testQuotaLimitsProduceActionableAlerts() {
+        for (used, rule, severity) in [(Int64(100), "user.quota.soft", HealthSeverity.warning),
+                                       (Int64(200), "user.quota.hard", HealthSeverity.critical)] {
+            let quota = QuotaSnapshot(id: "test", subject: "fixture", mountPoint: "/",
+                                      usedBytes: used, softLimitBytes: 100, hardLimitBytes: 200,
+                                      message: "fixture", capturedAt: Date(), provenance: .live)
+            let alerts = AlertRuleEngine().evaluate(volumes: [], samples: [], nfs: .unavailable,
+                                                    previousNFS: nil, quotas: [quota])
+            XCTAssertEqual(alerts.first?.ruleID, rule)
+            XCTAssertEqual(alerts.first?.severity, severity)
+            XCTAssertFalse(alerts.first?.recommendation.isEmpty ?? true)
+        }
+    }
+
+    func testUnavailableQuotaNeverCreatesLiveAlert() {
+        let quota = QuotaSnapshot(id: "test", subject: "fixture", mountPoint: "/", usedBytes: 200,
+                                  softLimitBytes: 100, hardLimitBytes: 200, message: "fixture",
+                                  capturedAt: Date(), provenance: .unavailable)
+        XCTAssertTrue(AlertRuleEngine().evaluate(volumes: [], samples: [], nfs: .unavailable,
+                                                previousNFS: nil, quotas: [quota]).isEmpty)
+    }
+
     private func makeVolume(total: Int64, available: Int64) -> VolumeSnapshot {
         VolumeSnapshot(
             id: "test",

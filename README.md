@@ -47,12 +47,12 @@ alert that used it.
   evidence fallback and an explicit unavailable state.
 - A 128 MiB bounded temporary-file benchmark with explicit `BENCHMARK`
   provenance and cleanup status.
-- A workload-placement estimate with a 20% capacity margin.
+- A workload-placement estimate with a 20% capacity margin and conservative current-user quota headroom when structured live limits match the volume.
 - Opt-in FSEvents monitoring that reports aggregate operations under a selected
   root label without displaying event paths or reading file contents.
 - A bundled pNFS JSON replay, visibly labeled `REPLAY`, for deterministic parser
   evidence when live pNFS counters are absent.
-- Capacity, storage-error, NFS-timeout, and NFS-retry alerts with evidence and a
+- Capacity, user-quota, storage-error, NFS-timeout, and NFS-retry alerts with evidence and a
   recommended next step.
 - Native SwiftUI views for Overview, Volumes, I/O Performance, Activity, and
   Alerts, plus a Settings window.
@@ -166,7 +166,8 @@ defines the evidence required before release.
 
 ## Important limitations
 
-- **pNFS:** non-zero NFSv4.1 layout counters mean that pNFS-related operations
+- **pNFS platform limitation:** the installed `nfs(5)` manual on the validated macOS 26.6.2 host explicitly says pNFS is not supported by the native client. NFSv4.1 support and exposed layout fields do not establish pNFS capability. Clarify the expected client/API with the challenge sponsor.
+- **pNFS counter interpretation:** non-zero NFSv4.1 layout counters mean that pNFS-related operations
   were observed somewhere on the client. They do not prove that a particular
   mount or current workload used a pNFS data path. The local lab validates NFSv3,
   not pNFS.
@@ -176,7 +177,8 @@ defines the evidence required before release.
   does not replace capacity.
 - Recognized quota rows are mapped by their filesystem string; unrecognized
   output remains one raw, all-filesystems message.
-- Settings thresholds are persisted and read on refresh; they are not versioned
+- Quota scope is the current user, not administration of all users. Soft limits are treated conservatively; grace periods and inode limits are not evaluated. A capacity estimate is not a write-permission guarantee.
+- Settings appearance (System/Light/Dark), optional numeric animations, and thresholds are persisted and read on refresh; they are not versioned
   with historical alerts.
 - Benchmark reads happen immediately after writes and may be served by the
   macOS cache; results are not raw-device performance.

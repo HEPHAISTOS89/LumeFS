@@ -1,7 +1,7 @@
 import Foundation
 import IOKit
 
-private struct DeviceCounters: Sendable {
+struct DeviceCounters: Sendable {
     let capturedAt: Date
     let bytesRead: UInt64
     let bytesWritten: UInt64
@@ -21,29 +21,35 @@ actor BlockIOCollector {
         defer { previousCounters = currentCounters }
 
         return currentCounters.compactMap { deviceName, current in
-            guard let previous = previousCounters[deviceName] else {
-                return zeroSample(deviceName: deviceName, counters: current)
-            }
-
-            let interval = current.capturedAt.timeIntervalSince(previous.capturedAt)
-            guard interval > 0 else {
-                return zeroSample(deviceName: deviceName, counters: current)
-            }
-
-            return DeviceIOSample(
-                deviceName: deviceName,
-                timestamp: date,
-                readBytesPerSecond: rate(current.bytesRead, previous.bytesRead, interval),
-                writeBytesPerSecond: rate(current.bytesWritten, previous.bytesWritten, interval),
-                readOperationsPerSecond: rate(current.readOperations, previous.readOperations, interval),
-                writeOperationsPerSecond: rate(current.writeOperations, previous.writeOperations, interval),
-                readErrors: current.readErrors,
-                writeErrors: current.writeErrors,
-                readRetries: current.readRetries,
-                writeRetries: current.writeRetries
-            )
+            Self.sample(deviceName: deviceName, current: current, previous: previousCounters[deviceName])
         }
         .sorted { $0.deviceName.localizedStandardCompare($1.deviceName) == .orderedAscending }
+    }
+
+    static func sample(
+        deviceName: String,
+        current: DeviceCounters,
+        previous: DeviceCounters?
+    ) -> DeviceIOSample? {
+        // A rate requires two ordered observations, not an invented initial zero.
+        guard let previous else { return nil }
+        let interval = current.capturedAt.timeIntervalSince(previous.capturedAt)
+        guard interval > 0,
+              current.bytesRead >= previous.bytesRead,
+              current.bytesWritten >= previous.bytesWritten else { return nil }
+
+        return DeviceIOSample(
+            deviceName: deviceName,
+            timestamp: current.capturedAt,
+            readBytesPerSecond: rate(current.bytesRead, previous.bytesRead, interval),
+            writeBytesPerSecond: rate(current.bytesWritten, previous.bytesWritten, interval),
+            readOperationsPerSecond: rate(current.readOperations, previous.readOperations, interval),
+            writeOperationsPerSecond: rate(current.writeOperations, previous.writeOperations, interval),
+            readErrors: current.readErrors,
+            writeErrors: current.writeErrors,
+            readRetries: current.readRetries,
+            writeRetries: current.writeRetries
+        )
     }
 
     private func readCounters(at date: Date) -> [String: DeviceCounters] {
@@ -72,6 +78,9 @@ actor BlockIOCollector {
             guard (properties["Whole"] as? Bool) == true else { continue }
             guard let deviceName = properties["BSD Name"] as? String else { continue }
             guard let statistics = statistics(for: media) else { continue }
+
+            guard statistics["Bytes (Read)"] is NSNumber,
+                  statistics["Bytes (Write)"] is NSNumber else { continue }
 
             counters[deviceName] = DeviceCounters(
                 capturedAt: date,
@@ -128,26 +137,9 @@ actor BlockIOCollector {
         return 0
     }
 
-    private func rate(_ current: UInt64, _ previous: UInt64, _ interval: TimeInterval) -> Double {
+    private static func rate(_ current: UInt64, _ previous: UInt64, _ interval: TimeInterval) -> Double {
         guard current >= previous else { return 0 }
         return Double(current - previous) / interval
     }
 
-    private func zeroSample(
-        deviceName: String,
-        counters: DeviceCounters
-    ) -> DeviceIOSample {
-        DeviceIOSample(
-            deviceName: deviceName,
-            timestamp: counters.capturedAt,
-            readBytesPerSecond: 0,
-            writeBytesPerSecond: 0,
-            readOperationsPerSecond: 0,
-            writeOperationsPerSecond: 0,
-            readErrors: counters.readErrors,
-            writeErrors: counters.writeErrors,
-            readRetries: counters.readRetries,
-            writeRetries: counters.writeRetries
-        )
-    }
 }

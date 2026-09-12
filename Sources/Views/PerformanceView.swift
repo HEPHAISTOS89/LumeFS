@@ -8,7 +8,7 @@ struct PerformanceView: View {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 ScreenHeader(
                     title: "I/O performance",
-                    subtitle: "Live block-storage throughput across whole devices"
+                    subtitle: "All devices · not attributed to a volume or a model"
                 ) {
                     ProvenanceBadge(provenance: store.ioProvenance)
                 }
@@ -25,15 +25,23 @@ struct PerformanceView: View {
                 }
 
                 if store.ioHistory.isEmpty {
-                    ProgressView("Collecting I/O samples…")
-                        .frame(maxWidth: .infinity, minHeight: 240)
+                    EmptyStateView(
+                        symbol: "chart.xyaxis.line",
+                        title: store.isMonitoring && store.lastUpdated == nil ? "Connecting to storage" : "I/O unavailable",
+                        message: "No device samples are available. Try refreshing."
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 180)
                 } else {
+                    if store.ioProvenance == .unavailable || !store.isMonitoring {
+                        ProductLabel("Showing earlier samples", systemImage: "clock")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     ThroughputChart(samples: store.ioHistory)
                         .frame(height: 260)
                 }
 
                 HStack {
-                    Label("Counters are sampled from IOKit", systemImage: "info.circle")
+                    ProductLabel("Counters are sampled from IOKit", systemImage: "info.circle")
                     Spacer()
                     Text("\(store.ioHistory.count) samples retained")
                         .monospacedDigit()
@@ -55,17 +63,17 @@ struct PerformanceView: View {
     private var liveMetrics: some View {
         PerformanceMetric(
             title: "Read",
-            value: MetricFormatter.throughput(store.totalReadBytesPerSecond),
+            value: measuredRate(store.totalReadBytesPerSecond),
             color: .blue
         )
         PerformanceMetric(
             title: "Write",
-            value: MetricFormatter.throughput(store.totalWriteBytesPerSecond),
+            value: measuredRate(store.totalWriteBytesPerSecond),
             color: .teal
         )
         PerformanceMetric(
             title: "Combined",
-            value: MetricFormatter.throughput(store.totalBytesPerSecond),
+            value: measuredRate(store.totalBytesPerSecond),
             color: .primary
         )
     }
@@ -74,9 +82,9 @@ struct PerformanceView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Controlled benchmark")
+                    Text("Quick speed test")
                         .font(.headline)
-                    Text("128 MiB, app-owned temporary file, automatic cleanup")
+                    Text("128 MiB temporary file · removed after the test")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -88,7 +96,7 @@ struct PerformanceView: View {
                         ProgressView()
                             .controlSize(.small)
                     } else {
-                        Label("Run benchmark", systemImage: "speedometer")
+                        ProductLabel("Run benchmark", systemImage: "speedometer")
                     }
                 }
                 .disabled(store.isBenchmarkRunning)
@@ -108,7 +116,7 @@ struct PerformanceView: View {
                     .padding(LayoutMetrics.contentSpacing)
                 }
 
-                Label(
+                ProductLabel(
                     "Synchronized write · immediate read may use the macOS cache · temporary file removed",
                     systemImage: "checkmark.shield"
                 )
@@ -117,7 +125,7 @@ struct PerformanceView: View {
             }
 
             if let error = store.benchmarkError {
-                Label(error, systemImage: "exclamationmark.triangle")
+                ProductLabel(error, systemImage: "exclamationmark.triangle")
                     .font(.callout)
                     .foregroundStyle(.orange)
             }
@@ -149,74 +157,112 @@ struct PerformanceView: View {
         ProvenanceBadge(provenance: result.provenance)
     }
 
+    private func measuredRate(_ value: Double) -> String {
+        guard store.ioProvenance != .unavailable else { return "—" }
+        return MetricFormatter.throughput(value)
+    }
+
     private var nfsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("NFS client and pNFS")
-                    .font(.headline)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Network storage").font(.headline)
+                    Text("NFS client · cumulative counters")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
                 ProvenanceBadge(provenance: store.nfsMetrics.provenance)
             }
 
-            Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
-                nfsRow("RPC requests", store.nfsMetrics.requests)
-                nfsRow("Retries", store.nfsMetrics.retries)
-                nfsRow("Timed out", store.nfsMetrics.timedOut)
-                nfsRow("Read operations", store.nfsMetrics.readOperations)
-                nfsRow("Write operations", store.nfsMetrics.writeOperations)
-                nfsRow("pNFS layout gets", store.nfsMetrics.layoutGets)
-                nfsRow("pNFS layout commits", store.nfsMetrics.layoutCommits)
-                nfsRow("pNFS device info", store.nfsMetrics.deviceInfoRequests)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            if store.nfsMetrics.provenance == .unavailable {
+                ProductLabel("NFS counters unavailable", systemImage: "network.slash")
+                    .foregroundStyle(.secondary)
+                    .help("macOS did not return NFS client statistics. Missing counters are not zero.")
+            } else {
+                HStack(spacing: 32) {
+                    networkMetric("Requests", store.nfsMetrics.requests, symbol: "network")
+                    networkMetric("Retries", store.nfsMetrics.retries, symbol: "arrow.clockwise")
+                    networkMetric("Timeouts", store.nfsMetrics.timedOut, symbol: "clock.badge.exclamationmark")
+                    Spacer(minLength: 0)
+                }
+                ProductLabel(
+                    store.nfsMetrics.pNFSObserved ? "pNFS operations observed" : "No pNFS operations observed",
+                    systemImage: store.nfsMetrics.pNFSObserved ? "checkmark.circle" : "info.circle"
+                )
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-            Label(
-                store.nfsMetrics.pNFSObserved
-                    ? "pNFS layout activity has been observed on this client."
-                    : "No pNFS layout activity has been observed on this client.",
-                systemImage: store.nfsMetrics.pNFSObserved ? "checkmark.circle" : "info.circle"
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-
-            HStack {
-                if let replay = store.pNFSReplayMetrics {
-                    Button("Hide replay") {
-                        store.hidePNFSReplay()
+                DisclosureGroup("Counter details") {
+                    Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 10) {
+                        nfsRow("Read operations", store.nfsMetrics.readOperations)
+                        nfsRow("Write operations", store.nfsMetrics.writeOperations)
+                        nfsRow("Layout gets", store.nfsMetrics.layoutGets)
+                        nfsRow("Layout commits", store.nfsMetrics.layoutCommits)
+                        nfsRow("Layout returns", store.nfsMetrics.layoutReturns)
+                        nfsRow("Device info", store.nfsMetrics.deviceInfoRequests)
                     }
-                    .buttonStyle(.link)
-                    Spacer()
-                    Text(
-                        "Replay evidence: \(replay.layoutGets) layout gets · \(replay.deviceInfoRequests) device-info requests"
-                    )
-                    .font(.caption.monospacedDigit())
-                    ProvenanceBadge(provenance: .replay)
-                } else {
-                    Button("Preview deterministic pNFS evidence") {
-                        store.showPNFSReplay()
-                    }
-                    .buttonStyle(.link)
-                    Spacer()
-                    Text("Does not replace live counters")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                    Text("Client-wide evidence, not proof that this workload uses pNFS.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
 
+            Divider()
+            replaySection
+        }
+    }
+
+    private var replaySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                ProductLabel("pNFS example", systemImage: "play.rectangle")
+                    .font(.callout.weight(.medium))
+                Spacer()
+                Button(store.pNFSReplayMetrics == nil ? "Show example" : "Hide example") {
+                    if store.pNFSReplayMetrics == nil {
+                        store.showPNFSReplay()
+                    } else {
+                        store.hidePNFSReplay()
+                    }
+                }
+            }
+            Text("Bundled sample · never replaces live measurements")
+                .font(.caption).foregroundStyle(.secondary)
+            if let replay = store.pNFSReplayMetrics {
+                InsetPanel {
+                    VStack(alignment: .leading, spacing: 12) {
+                        ProvenanceBadge(provenance: .replay)
+                        HStack(spacing: 32) {
+                            networkMetric("Layout gets", replay.layoutGets, symbol: "square.stack.3d.up")
+                            networkMetric("Device info", replay.deviceInfoRequests, symbol: "externaldrive")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                }
+            }
             if let error = store.pNFSReplayError {
-                Label(error, systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                ProductLabel(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
             }
         }
     }
 
+    private func networkMetric(_ title: String, _ value: UInt64, symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            ProductLabel(title, systemImage: symbol)
+                .font(.caption).foregroundStyle(.secondary)
+            Text(value.formatted())
+                .font(.title2.weight(.semibold)).monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+    }
+
     private func nfsRow(_ label: String, _ value: UInt64) -> some View {
         GridRow {
-            Text(label)
-                .foregroundStyle(.secondary)
-            Text(value.formatted())
-                .monospacedDigit()
+            Text(label).foregroundStyle(.secondary)
+            Text(value.formatted()).monospacedDigit()
         }
     }
 }
@@ -228,14 +274,14 @@ private struct PerformanceMetric: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Label(title, systemImage: symbolName)
+            ProductLabel(title, systemImage: symbolName)
                 .font(.caption)
                 .foregroundStyle(color)
             Text(value)
                 .font(.title2.weight(.semibold))
                 .monospacedDigit()
         }
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
         .accessibilityValue(value)
     }

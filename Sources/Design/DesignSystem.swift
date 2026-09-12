@@ -45,8 +45,8 @@ struct ProvenanceBadge: View {
 
     var body: some View {
         Text(provenance.rawValue)
-            .font(.system(size: 9, weight: .semibold, design: .monospaced))
-            .tracking(0.8)
+            .font(.system(.caption2, design: .monospaced, weight: .semibold))
+            .tracking(0.4)
             .padding(.horizontal, 6)
             .padding(.vertical, 3)
             .background(.quaternary, in: RoundedRectangle(cornerRadius: 4))
@@ -99,8 +99,17 @@ struct InsetPanel<Content: View>: View {
 }
 
 struct CapacityMeter: View {
+    @AppStorage("capacityWarningThreshold") private var warningPercent = 20.0
+    @AppStorage("capacityCriticalThreshold") private var criticalPercent = 10.0
     let volume: VolumeSnapshot
     var width: CGFloat?
+
+    private var severity: HealthSeverity {
+        volume.capacitySeverity(thresholds: CapacityThresholds(
+            warningFreeFraction: warningPercent / 100,
+            criticalFreeFraction: criticalPercent / 100
+        ))
+    }
 
     var body: some View {
         ProgressView(value: volume.usedFraction) {
@@ -108,22 +117,10 @@ struct CapacityMeter: View {
         } currentValueLabel: {
             EmptyView()
         }
-        .tint(volume.capacityTint)
+        .tint(severity == .healthy ? .accentColor : severity.color)
         .frame(width: width)
         .accessibilityLabel("Capacity used")
         .accessibilityValue(MetricFormatter.percentage(volume.usedFraction))
-    }
-}
-
-extension VolumeSnapshot {
-    var capacitySeverity: HealthSeverity {
-        if availableFraction < 0.10 { return .critical }
-        if availableFraction < 0.20 { return .warning }
-        return .healthy
-    }
-
-    var capacityTint: Color {
-        capacitySeverity == .healthy ? .accentColor : capacitySeverity.color
     }
 }
 
@@ -138,5 +135,112 @@ struct EmptyStateView: View {
             systemImage: symbol,
             description: Text(message)
         )
+    }
+}
+
+struct CapacityStatusView: View {
+    let volume: VolumeSnapshot
+    @AppStorage("capacityWarningThreshold") private var warningPercent = 20.0
+    @AppStorage("capacityCriticalThreshold") private var criticalPercent = 10.0
+
+    var body: some View {
+        let severity = volume.capacitySeverity(thresholds: CapacityThresholds(
+            warningFreeFraction: warningPercent / 100,
+            criticalFreeFraction: criticalPercent / 100
+        ))
+        Label(title(for: severity), systemImage: severity.symbolName)
+            .font(.callout.weight(.medium))
+            .foregroundStyle(severity.color)
+    }
+
+    private func title(for severity: HealthSeverity) -> String {
+        if volume.totalBytes <= 0 { return "Capacity unknown" }
+        switch severity {
+        case .healthy: return "Space available"
+        case .notice: return "Check capacity"
+        case .warning: return "Low space"
+        case .critical: return "Very low space"
+        }
+    }
+}
+
+/// Product pictograms use one pinned SVG family; platform/status symbols stay native.
+struct ProductIcon: View {
+    let systemName: String
+    var size: CGFloat = 18
+
+    static let assets: [String: String] = [
+        "internaldrive": "Lucide-hard-drive",
+        "network": "Lucide-network",
+        "chart.xyaxis.line": "Lucide-chart-no-axes-combined",
+        "arrow.clockwise": "Lucide-refresh-cw",
+        "arrow.up.arrow.down": "Lucide-arrow-down-up",
+        "arrow.down": "Lucide-arrow-down",
+        "arrow.up": "Lucide-arrow-up",
+        "clock": "Lucide-clock",
+        "speedometer": "Lucide-gauge",
+        "folder": "Lucide-folder",
+        "folder.badge.gearshape": "Lucide-folder-cog",
+        "hand.raised": "Lucide-hand",
+        "info.circle": "Lucide-info",
+        "chevron.right": "Lucide-chevron-right",
+        "arrow.right.circle": "Lucide-circle-arrow-right",
+        "play.rectangle": "Lucide-clapperboard",
+        "lock": "Lucide-lock",
+        "waveform.path.ecg": "Lucide-activity"
+    ]
+
+    var body: some View {
+        Group {
+            if let asset = Self.assets[systemName] {
+                Image(asset)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                Image(systemName: systemName)
+                    .resizable()
+                    .scaledToFit()
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+struct ProductLabel: View {
+    let title: String
+    let systemImage: String
+
+    init(_ title: String, systemImage: String) {
+        self.title = title
+        self.systemImage = systemImage
+    }
+
+    var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            ProductIcon(systemName: systemImage, size: 14)
+        }
+    }
+}
+
+/// Persisted appearance shared by every app scene. Unknown preferences follow macOS.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system, light, dark
+
+    var id: String { rawValue }
+    var title: String { rawValue.capitalized }
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+
+    static func resolve(_ value: String) -> AppAppearance {
+        AppAppearance(rawValue: value) ?? .system
     }
 }

@@ -38,6 +38,14 @@ final class QuotaCollectorTests: XCTestCase {
         XCTAssertEqual(snapshots[0].hardLimitBytes, 4_194_304)
     }
 
+    func testNoneInsideFilesystemNameDoesNotHideQuota() {
+        let snapshots = QuotaCollector(commandRunner: SystemCommandRunner()).parse(
+            output: "server:/nonempty 1024 2048 4096 0 3 0 0 0"
+        )
+        XCTAssertEqual(snapshots.first?.provenance, .live)
+        XCTAssertEqual(snapshots.first?.usedBytes, 1_048_576)
+    }
+
     func testParsesWrappedRemoteQuotaRow() {
         let output = """
         Disk quotas for user example (uid 501):

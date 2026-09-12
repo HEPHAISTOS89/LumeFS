@@ -10,6 +10,16 @@ enum AppSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var navigationAsset: String {
+        switch self {
+        case .overview: "Lucide-gauge"
+        case .volumes: "Lucide-hard-drive"
+        case .performance: "Lucide-chart-no-axes-combined"
+        case .activity: "Lucide-clock-arrow-left"
+        case .alerts: "Lucide-bell"
+        }
+    }
+
     var symbolName: String {
         switch self {
         case .overview: "gauge.with.dots.needle.50percent"
@@ -18,6 +28,19 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .activity: "clock.arrow.circlepath"
         case .alerts: "bell.badge"
         }
+    }
+}
+
+enum CollectionFreshness: String {
+    case connecting = "Connecting"
+    case current = "Monitoring"
+    case delayed = "Data delayed"
+    case paused = "Paused"
+
+    static func evaluate(isMonitoring: Bool, lastUpdated: Date?, now: Date) -> Self {
+        guard isMonitoring else { return .paused }
+        guard let lastUpdated else { return .connecting }
+        return now.timeIntervalSince(lastUpdated) > 10 ? .delayed : .current
     }
 }
 
@@ -44,9 +67,10 @@ final class MonitoringStore {
     private(set) var isBenchmarkRunning = false
     private(set) var lastUpdated: Date?
     private(set) var isMonitoring = false
+    private(set) var isRefreshing = false
 
     @ObservationIgnored
-    private let engine = MonitoringEngine()
+    private let collectSnapshot: @Sendable () async -> SystemSnapshot
     @ObservationIgnored
     private let benchmark = DiskBenchmark()
     @ObservationIgnored
@@ -55,6 +79,15 @@ final class MonitoringStore {
     private var fileActivityCollector: FileActivityCollector?
     @ObservationIgnored
     private var fileActivityTask: Task<Void, Never>?
+
+    init(collectSnapshot: (@Sendable () async -> SystemSnapshot)? = nil) {
+        if let collectSnapshot {
+            self.collectSnapshot = collectSnapshot
+        } else {
+            let engine = MonitoringEngine()
+            self.collectSnapshot = { await engine.refresh() }
+        }
+    }
 
     var selectedVolume: VolumeSnapshot? {
         volumes.first { $0.id == selectedVolumeID }
@@ -109,7 +142,12 @@ final class MonitoringStore {
     }
 
     func refreshNow() async {
-        let snapshot = await engine.refresh()
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        let snapshot = await collectSnapshot()
+        guard !Task.isCancelled else { return }
         apply(snapshot)
     }
 
@@ -118,6 +156,7 @@ final class MonitoringStore {
 
         isBenchmarkRunning = true
         benchmarkError = nil
+        benchmarkResult = nil
 
         do {
             let result = try await benchmark.run(mebibytes: 128)
@@ -178,6 +217,11 @@ final class MonitoringStore {
         do {
             let label = url.lastPathComponent.isEmpty ? "Selected folder" : url.lastPathComponent
             let root = try FileActivityRoot(url: url, label: label)
+            var isDirectory: ObjCBool = false
+            guard FileManager.default.fileExists(atPath: root.url.path, isDirectory: &isDirectory),
+                  isDirectory.boolValue else {
+                throw FileActivityCollectorError.rootIsNotDirectory(root.label)
+            }
             let collector = FileActivityCollector(roots: [root], latency: 0.5)
             let stream = collector.events()
 
@@ -242,10 +286,10 @@ final class MonitoringStore {
             ioHistory.removeFirst(ioHistory.count - 900)
         }
 
-        if selectedVolumeID == nil {
+        if !volumes.contains(where: { $0.id == selectedVolumeID }) {
             selectedVolumeID = volumes.first?.id
         }
-        if selectedAlertID == nil {
+        if !alerts.contains(where: { $0.id == selectedAlertID }) {
             selectedAlertID = alerts.first?.id
         }
     }
