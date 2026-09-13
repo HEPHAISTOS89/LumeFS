@@ -40,6 +40,28 @@ multiplication also produces zero.
 | SMART status | `SMARTStatus` |
 | APFS volume quota | `CapacityQuota` when positive |
 | APFS reserve | `CapacityReserve` when positive |
+| Container reference / size / free | `APFSContainerReference`, `APFSContainerSize`, `APFSContainerFree` (non-negative) |
+| Physical stores | `APFSPhysicalStores[].DeviceIdentifier` |
+| Volume in use | `CapacityInUse` |
+| Encryption / FileVault / Locked | `Encryption`, `FileVault`, `Locked` (booleans) |
+| Sealed (signed system volume) | `Sealed` (“Yes”/“No” string or boolean) |
+| Device | `DeviceIdentifier`, `BusProtocol`, `SolidState`, `Internal` |
+| Volume UUID | `VolumeUUID` |
+
+Apple documents none of these keys as a stable interface; a missing key is
+shown as “Not reported”, never inferred. Container free space is shared by every
+volume in the container, which is also why an APFS volume's own `f_bavail` can
+shrink without that volume writing anything. The encryption label reports
+`Locked` first, then `Encrypted · FileVault`, `Encrypted`, `Not encrypted`.
+
+File-node counts come from `statfs` (`f_files`, `f_ffree`); used = total −
+free. APFS allocates inodes dynamically, so the “inventory” figure is not a
+ceiling and no alert is derived from it.
+
+LumeFS never runs `fsck_apfs`, `diskutil verifyVolume` or any repair. The
+volume detail offers a “Copy verify command” button that places
+`diskutil verifyVolume "<mount point>"` on the clipboard for the operator to run
+manually; that command is itself read-only (`fsck_apfs -n`).
 
 Overview “Lowest free space” is the free percentage of the discovered volume
 with the lowest available fraction. It is not a predicted exhaustion date.
@@ -51,6 +73,19 @@ IOKit cumulative counters are sampled for whole `IOMedia` devices:
 ```text
 rate = (current counter - previous counter) / elapsed seconds
 ```
+
+Each whole media is traced up the IOKit service plane to the first
+`IOBlockStorageDriver`, whose `Statistics` dictionary supplies the counters. An
+APFS container (`disk3`) synthesized above a physical store (`disk0`) reaches the
+same driver, so the collector keeps only one media per driver registry ID: the
+shallowest one (the physical whole disk), with the BSD name as tie-breaker. Media
+without an identifiable driver fall back to a recursive property search and are
+treated as independent sources. Without this rule the “All devices” total would
+count internal SSD traffic twice.
+
+The result is still a whole-device figure. It is not compared automatically with
+`iostat`; the maintainer validation record describes the manual trend comparison
+(`iostat -d -w 1`) and its tolerance.
 
 The app reports read bytes/s, write bytes/s, read/write operations/s, cumulative
 errors, and cumulative retries. The first sample and any counter rollback yield
@@ -91,6 +126,95 @@ The bundled preview parses fixed JSON with `REPLAY` provenance. Replay counters
 demonstrate parsing and presentation only and never replace the live counter
 block.
 
+## NFS mount information
+
+`nfsstat -m -f JSON <mount point>` is run once per discovered NFS mount, at the
+mount-table cadence (every 10 cycles). Apple's `nfsstat` nests one dictionary per
+mount under the mount source (`server:/export`); LumeFS reads the entry whose
+`Mount Point` matches the queried path.
+
+| Model field | Parsed source |
+| --- | --- |
+| Server, export, addresses | `Current mount parameters` (fallback `Original mount options`) → `File system locations[0]` → `Server`, `Export`, `Locations` |
+| NFS version | `NFS parameters` entry `vers=…` (for example `3`, `4.1`) |
+| Transport | First `NFS parameters` entry among `tcp`, `udp`, `tcp4`, `tcp6`, `udp4`, `udp6`, `ticlts`, `ticotsord` |
+| Parameters, mount flags | `NFS parameters`, `General mount flags` → `Flags` |
+| Status flags | `Status flags` → `Flags`: `dead`, `not responding`, `recovery` (kernel `NFS_MIFLAG_*`) |
+
+A record is `LIVE` only when `nfsstat` exited 0 and returned a mount dictionary.
+Command failure, empty output (`{}`), or a parse error produces one
+`UNAVAILABLE` record per mount that keeps the mount point and the error text;
+an `UNAVAILABLE` record never reads as “Responding”.
+
+These are the client's negotiated parameters and kernel state, not per-mount
+throughput. macOS does not expose per-mount byte or operation counters; the
+client-wide counters above remain the only NFS traffic figures.
+
+## Process disk I/O
+
+Every second cycle the engine lists processes with `sysctl(KERN_PROC_ALL)` and
+reads `proc_pid_rusage(pid, RUSAGE_INFO_V4)` for each one. `ri_diskio_bytesread`
+and `ri_diskio_byteswritten` are the kernel's cumulative physical disk bytes
+attributed to the process that issued them.
+
+| Model field | Source |
+| --- | --- |
+| Name | `proc_name` (full executable name), fallback `p_comm` (16 bytes) |
+| PID, uid, start time | `kinfo_proc` (`p_pid`, `e_ucred.cr_uid`, `p_starttime`) |
+| User | `getpwuid_r` on the uid, fallback `uid N` |
+| Read / write rate | Non-negative delta of the disk byte counters divided by the interval between the two observations (nominally 2 s) |
+| Written total | Cumulative `ri_diskio_byteswritten` |
+| Hint | `WorkloadHint.token(forProcessName:)`: name match against `exo`, `openclaw`, `ollama`, `llama`, `mlx`, `python`, `jupyter`, `lmstudio`, `vllm`, `torch`, `whisper`, `comfy`, `diffusion`, `koboldcpp`, `mistral` |
+
+Identity is `pid-starttime`, so a recycled PID never inherits another process's
+counters. A first observation has no rate; only processes with a non-zero delta
+appear in the list, capped at 40 entries ordered by combined rate.
+
+Coverage is reported, not hidden: XNU's `proc_pid_rusage` applies
+`CHECK_SAME_USER` (`bsd/kern/proc_info.c`), so without root LumeFS can read the
+counters of the current user's processes only. Other users' processes are
+counted as “not permitted” (`EPERM`). The panel shows readable / total /
+denied counts. Page-cache hits and network file-system traffic are not part of
+these counters; the hint is a name heuristic, never a classification of what the
+process does. Arguments, environment, open files and paths are never read.
+
+## NFS users (server side)
+
+`nfsstat -u -n net -f JSON` reads the kernel's active-user list through
+`nfssvc(NFSSVC_USERSTATS)`. XNU grants that call without superuser (only
+`NFSSVC_NFSD` and `NFSSVC_ADDSOCK` require it), so no privilege prompt is
+involved. The list exists only on a Mac that runs `nfsd`; on a pure client the
+command prints `No NFS active user statistics found.` and an empty JSON
+document. `-n net` keeps addresses numeric, so collection performs no DNS
+lookup. `/sbin/nfsd status` (documented by Apple as an unprivileged command;
+exit 0 when running, 1 otherwise) tells the UI whether “no user” means “idle
+server” or “this Mac is not a server”.
+
+| Model field | Parsed source |
+| --- | --- |
+| Export | Key under `NFS Active User Info` |
+| User, uid | `User` (resolved name) or `Uuid` (numeric uid shown as `uid N`) |
+| Address | Text after the last `@` of the record key (IPv4 or IPv6 literal) |
+| Requests, read bytes, write bytes | `Requests`, `Read Bytes`, `Write Bytes` (cumulative per record) |
+| Idle | `Idle` as `h:mm:ss` converted to seconds |
+
+Rates are deltas between two consecutive `LIVE` snapshots three seconds apart
+(the NFS collection interval), divided by the measured interval. A counter that
+decreased (nfsd reclaimed the idle record and a new one started at zero) counts
+as zero, never negative. Users seen for the first time have no rate yet.
+
+Provenance: `LIVE` when `nfsstat` exited 0 and either returned the marker
+sentence (zero users) or an `NFS Active User Info` section; `UNAVAILABLE` when
+the command failed (for example `nfssvc failed: Operation not permitted` under
+a MAC policy) or returned JSON without that section. `UNAVAILABLE` is displayed
+as such with the reason and is never rendered as zero activity.
+
+Privacy: the Attribution view masks addresses to their network prefix
+(`192.0.·.·`, `2001:db8:…`) unless “Show full client addresses” is enabled;
+alert text always uses the masked form. Retries are **not** reported per user
+by macOS (`nfsstat -u` exposes requests, bytes and idle time only); retry
+pressure remains a client-wide figure (`nfs.rpc.retries`).
+
 ## Quota
 
 `quota -uv` is run for the current user. Recognized filesystem rows use the first
@@ -106,16 +230,59 @@ file systems” message; it is not treated as a structured per-volume metric.
 Quota output may include usernames, mount names, paths, or server identifiers.
 Review it before publishing screenshots.
 
+### Scope and the administrator path
+
+`quota -uv` answers for the current user only, and LumeFS never requests
+administrator rights, so all-user quota administration is explicitly out of
+the automatic path. Instead:
+
+- The volume detail states the scope, explains what applies to that file
+  system, and offers **Copy administrator command**, which places
+  `sudo repquota -a -v` on the clipboard for the operator to run in Terminal.
+  LumeFS does not execute it and does not prompt for a password. `repquota`
+  reads quota files and changes nothing.
+- APFS enforces no per-user quotas; the only limits are the APFS volume quota
+  and reserve. On an APFS-only Mac `repquota` lists no users, and the guidance
+  says so rather than implying a report exists.
+- For NFS mounts, per-user quotas are enforced by the server; the guidance
+  names the server from the mount source and points there. The client can only
+  ask about the current user (rquotad).
+- Every export carries a `quotaCoverage` record (`scope = current-user`, the
+  subject, the administrator command and the note above), and the CSV has
+  `quota,coverage,scope` and `quota,coverage,administrator_command` rows, so a
+  report cannot be mistaken for all-user coverage.
+
 ## Alerts
 
 | Rule ID | Trigger | Severity |
 | --- | --- | --- |
-| `device.smart.unhealthy` | SMART text exists and is not case-insensitively equal to `Verified` | Critical |
+| `device.smart.unhealthy` | SMART text contains explicit failure wording (`fail`, `fault`, `error`, `critical`, `degrad`, `warn`, `bad`, `predict`) | Critical |
+| `device.smart.unrecognized` | SMART text is present, is not `Verified`, is not a known “no data” value (`Not Supported`, `Unknown`, empty) and contains no failure wording | Notice |
 | `volume.capacity.warning` | Free fraction is below the configured warning level but not the critical level | Warning |
 | `volume.capacity.critical` | Free fraction is below the configured critical level | Critical |
 | `device.io.errors` | Read errors + write errors is greater than zero | Critical |
 | `nfs.rpc.retries` | Cumulative NFS retries increased since the prior live NFS sample | Warning |
 | `nfs.rpc.timeout` | Cumulative NFS timeouts increased since the prior live NFS sample | Critical |
+| `nfs.mount.dead` | A `LIVE` mount record carries the kernel flag `dead` | Critical |
+| `nfs.mount.not_responding` | A `LIVE` mount record carries `not responding` (and not `dead`) | Critical |
+| `nfs.mount.recovery` | A `LIVE` mount record carries `recovery` only | Warning |
+| `nfs.user.write_burst` | One NFS user's write rate over the last interval is ≥ the write-burst threshold (default 100 MB/s; Settings 10–1,000 MB/s) | Warning |
+| `nfs.user.request_burst` | One NFS user's request rate over the last interval is ≥ the request-burst threshold (default 1,000 requests/s; Settings 100–10,000) | Warning |
+
+One mount raises at most one mount-state alert per refresh (`dead` outranks `not
+responding`, which outranks `recovery`). `UNAVAILABLE` mount records raise
+nothing. Mount-state alerts carry `relatedVolumeID` of the volume with the same
+mount point.
+
+User-burst comparisons are `>=` and apply per `export|user@address` record; a
+single user can raise both burst alerts in the same refresh. The alert text
+names the user, export and masked address. The thresholds are heuristics for
+“look at this now”, not proof of abuse; LumeFS never throttles or disconnects a
+client.
+
+`Not Supported`, `Unknown` and empty SMART values raise no alert: they mean the
+device or bridge exposes no SMART data, not that the device is failing. A SMART
+alert and a capacity alert can coexist for the same volume.
 
 Threshold comparisons are strict. Defaults are 20% warning and 10% critical;
 Settings can change them. The model clamps warning to 1–95%, critical to 1%–the
@@ -123,6 +290,60 @@ warning level, while the UI exposes narrower 10–40% and 2–20% ranges.
 
 Device-error counters are cumulative. A non-zero historical counter can keep an
 alert active even when no new error occurred during the latest interval.
+
+### Alert lifecycle and history
+
+Rules produce the current alert set; the history records occurrences of it.
+
+| State | Meaning | Set by |
+| --- | --- | --- |
+| `active` | The alert id is present in the latest snapshot | First refresh that reports the id (`raisedAt`) |
+| `acknowledged` | Still present, and someone pressed Acknowledge | The user (`acknowledgedAt`); the rule keeps firing |
+| `cleared` | The id is absent from a later snapshot | The refresh that no longer reports it (`clearedAt`) |
+
+- An entry is keyed by alert id plus raise time, so an id that clears and comes
+  back is a new entry; the earlier one stays `cleared`.
+- While an entry is open its payload (severity, message, evidence) is replaced
+  by the latest snapshot's version and `lastSeenAt` advances; `raisedAt` never
+  changes.
+- Cleared beats acknowledged: an acknowledged alert that stops firing is shown
+  as `cleared` with both timestamps kept.
+- The ledger keeps at most 500 entries. When full, the oldest `cleared`
+  entries are dropped first; open entries are never dropped.
+- The file is `~/Library/Application Support/LumeFS/alert-history.json`
+  (ISO-8601 dates, second precision). It is written on raise, clear,
+  acknowledge, “Clear Closed” and pause, not every second, so `lastSeenAt` on
+  disk can lag the UI until one of those events. An alert still open at quit is
+  cleared at the first refresh after relaunch, with that later time.
+- Clear times are refresh times, at most one collection cycle after the
+  condition ended. There is no acknowledgement expiry or snooze.
+
+### Notifications
+
+Off by default. When enabled in Settings, LumeFS posts a macOS notification
+for newly raised `critical` entries only, with these anti-spam rules: one
+notification per refresh (several titles are joined, three at most, then “and
+N more”), and a given alert id is announced at most once per 10 minutes even if
+it clears and is raised again. Warnings and notices never notify. The
+notification body is the alert title; it never includes evidence, paths,
+device names, quota output or user names. macOS suppresses banners while
+LumeFS is the active app.
+
+### Snapshot export
+
+File › Export Snapshot as JSON… (⇧⌘E) or as CSV… (⌥⇧⌘E) writes the latest
+applied snapshot with `exportedAt`, `appVersion`, `addressesMasked`, and every
+record's own `capturedAt` and provenance. JSON is the full model. CSV has one
+row per measurement: `captured_at,category,identifier,metric,value,unit,provenance`
+with categories `export`, `volume`, `device`, `nfs_client`, `nfs_mount`,
+`nfs_user`, `process`, `quota`, `alert` and `alert_history` (volume rows include
+`file_nodes_used`, `apfs_container`, `apfs_container_free_bytes` and
+`apfs_encryption`, `UNAVAILABLE` when `diskutil` did not answer). Byte values are
+integers, rates keep three decimals, non-finite numbers export as empty
+fields, and `.distantPast` timestamps (uncollected records) appear as year 0001.
+NFS client addresses are masked to their network prefix unless “Show full NFS
+client addresses” is on; alert text is always masked. Exporting re-collects
+nothing: the file is exactly what the UI showed.
 
 ## Workload placement estimate
 
@@ -137,19 +358,67 @@ fits           = available bytes >= required bytes
 The badge is `ESTIMATE`. The calculation does not predict checkpoint growth,
 temporary training files, other writers, quotas, or future availability.
 
+## Placement plan and copy
+
+The Placement view applies the same margin to real data. A plan is a dry run:
+
+| Field | Definition |
+| --- | --- |
+| Contents | Regular files, directories and symbolic links counted by a `FileManager` walk that never follows links; entries whose attributes cannot be read are counted as unreadable and would be skipped. |
+| Data | Sum of logical file sizes (`fileSizeKey`), plus the largest single file. Sparse files, compression and clones make allocated blocks differ from this figure. |
+| Required | `data bytes + 20%`, the same margin as the estimate above. |
+| Available | `volumeAvailableCapacityKey` of the destination root at planning time: statfs-style free space, purgeable space not counted. |
+| Fits | `available >= required`. Copy is disabled otherwise. |
+| Same volume | Source and destination share a volume URL; the copy frees no space there and becomes an APFS clone. |
+
+The badge is `ESTIMATE`. The plan is rejected, and nothing journaled, when the
+destination is inside the source or vice versa, when anything already exists at
+`<root>/<source name>`, when the root is missing or read-only, or when the
+space check fails.
+
+A confirmed copy reports:
+
+| Field | Definition |
+| --- | --- |
+| Progress | Copied bytes / planned bytes (files when the byte total is zero); bytes advance inside a file from the `copyfile(3)` status callback, throttled to 200 ms, and at each file boundary. |
+| Copied | Files whose `copyfile` call returned success. |
+| Size-verified | Files whose destination `fileSizeKey` equals the source's after the copy. A mismatch stops the run. |
+| Duration | Wall clock from start to the reported outcome. |
+| Incomplete | The relative path of the file in flight when a cancel or error stopped the run. It is left in place. |
+| Outcome | `completed`, `cancelled` or `failed`. On every outcome the original is retained and nothing at the destination is removed. |
+
+Verification is a size comparison, not a checksum. Directory attributes are
+not copied. The journal (`migration-journal.json`, 200 entries) records the
+plan and each outcome with full paths, counts and the detail shown in the UI.
+
 ## Controlled benchmark
 
-The UI requests 128 MiB. The guard accepts 1–256 MiB and requires at least twice
-the requested bytes in reported free space. The benchmark creates a previously
-absent UUID-named workspace directly below the macOS temporary directory, writes
-4 MiB chunks of deterministic data only to `sample.bin`, synchronizes the write,
-immediately reads the file, and removes both the file and workspace.
+The UI offers 128 (default), 256, 512 and 1,024 MiB. The guard accepts
+1–1,024 MiB and requires at least twice the requested bytes in reported free
+space. The ceiling was raised from 256 MiB because at several GB/s a 128 MiB
+pass lasts tens of milliseconds, too short for a stable rate; 1 GiB keeps a fast
+SSD busy for a few hundred milliseconds while the 2× rule still bounds the
+footprint (2 GiB free for the largest size). The benchmark creates a previously
+absent UUID-named workspace directly below the macOS temporary directory and
+writes only `sample.bin` (created with `O_EXCL`, mode 0600).
 
-Results report decimal bytes per second, elapsed read+write time,
-`writeWasSynchronized`, `readMayUseSystemCache`, and cleanup status with
-`BENCHMARK` provenance. Because the read immediately follows the write, it may
-measure cache performance rather than raw storage. No percentile, repeated-run,
-device-isolation, or explicit wall-clock-timeout statistic is produced.
+Three passes, each in 4 MiB page-aligned chunks:
+
+| Pass | How | Label in the UI |
+| --- | --- | --- |
+| Write | `F_NOCACHE` on the descriptor so pages do not stay resident, then `F_FULLFSYNC` (drive write cache flushed); `fsync(2)` only if the file system refuses, and the result says so | Write |
+| Uncached read | New descriptor with `F_NOCACHE` and `F_RDAHEAD` off, on pages that were never resident: bytes come from the device | Uncached read |
+| Cached read | Two consecutive normal reads; the second is reported and is served by the unified buffer cache | Cached read |
+
+Results report decimal bytes per second per pass, total elapsed time (all four
+reads/writes including the unreported warm-up pass), `writeWasSynchronized`,
+`writeUsedFullSync`, `writeBypassedCache` and cleanup status with `BENCHMARK`
+provenance. “Uncached” means the macOS buffer cache was bypassed; the drive's
+own DRAM/SLC cache, APFS compression and thermal state still influence the
+number, so it is a device-path figure, not raw media performance. Cancellation is
+checked between chunks; a cancelled run reports no rates and removes the
+workspace. No percentile, repeated-run, device-isolation or wall-clock-timeout
+statistic is produced.
 
 ## File activity
 
@@ -171,6 +440,8 @@ as requiring a rescan rather than treated as complete history.
 - Quota cache: up to approximately 30 cycles old.
 - I/O history: at most 900 aggregated samples.
 - Activity history: at most 200 in-memory session events.
+- Alert history: at most 500 entries, persisted in Application Support across
+  launches; open entries are never trimmed.
 
 These are scheduling intentions, not real-time deadlines. System commands have a
 five-second limit, and snapshot timestamps are captured before collection

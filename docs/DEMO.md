@@ -14,9 +14,11 @@ before sharing the screen.
 5. Do not fill a disk, provoke storage errors, or create NFS failures for a demo.
 
 Use the app's **Run benchmark** button only if a synthetic storage operation is
-appropriate on the demo Mac. It writes and immediately reads one 128 MiB
-app-owned temporary file, synchronizes the write, and removes the file. The read
-may use the macOS cache; do not call it raw-device performance.
+appropriate on the demo Mac. It writes one app-owned temporary file (128 MiB by
+default) with the cache bypassed and `F_FULLFSYNC`, reads it once uncached
+(`F_NOCACHE`) and once from the macOS cache, labels the three figures
+separately, and removes the file. Say “device path, not raw media” for the
+uncached read; the drive's own cache still applies.
 
 ## Script
 
@@ -56,9 +58,9 @@ Open **Performance**. Optionally run the built-in bounded 128 MiB benchmark.
 > These are deltas from cumulative IOKit counters for whole storage devices.
 > They show machine-level pressure, not which process or model caused it.
 
-> The benchmark has its own BENCHMARK badge. The synchronized write is real, but
-> the immediate read may use cache, so this is a controlled comparison—not a
-> storage certification.
+> The benchmark has its own BENCHMARK badge. The write is flushed to the drive,
+> the uncached read bypasses the macOS cache, and the cached read shows what the
+> cache adds—a controlled comparison, not a storage certification.
 
 If no visible live-I/O change occurs, say so. Do not substitute replay or
 benchmark numbers.
@@ -97,6 +99,35 @@ If the NFS lab was used:
 The final status must report that the lab export and mount are absent. The NFS
 daemon may remain running when it was already running or other exports exist.
 
+## Reproducible 2–3 minute recording plan
+
+No demo video is committed to this repository. Record it locally on a Mac with
+the following sequence; each step names the exact evidence the frame must show
+so the recording can be checked against the running app.
+
+| Time | Action | Evidence that must be visible |
+| --- | --- | --- |
+| 0:00 | Launch the app built from the demo commit; wait two refresh cycles | Toolbar status “Monitoring”, Overview with volume count and “No active alerts” or the real alert |
+| 0:20 | Settings → lower **Warning** slider until it is above the free % of one real volume | Overview attention card switches to a `LIVE` capacity warning without touching any file |
+| 0:40 | Alerts → select the alert | Rule ID `volume.capacity.warning`, evidence line “xx% free; threshold: yy%”, recommendation, `LIVE` badge |
+| 1:00 | Volumes → select the root volume → File-system details | Format, source, SMART label as interpreted (“Verified” or “Not reported by this device”), APFS quota/reserve or “Not reported” |
+| 1:20 | Performance while copying a large file in Finder (`cp` of a 2–4 GiB model file to another folder) | Read/Write lines move; badge `LIVE`; footer “Counters are sampled from IOKit” |
+| 1:45 | Run the benchmark | `BENCHMARK` badge, duration, and the caption stating the immediate read may use the cache |
+| 2:05 | If the loopback NFS lab is mounted: Volumes shows the NFS mount as non-local; Performance → NFS shows live requests increasing after `cat` of the lab fixture | `LIVE` NFS counters; otherwise the explicit “NFS counters unavailable” state |
+| 2:25 | Performance → **Show example** | `REPLAY` badge, “never replaces live measurements” caption; say aloud that macOS's native client does not implement pNFS |
+| 2:45 | Activity | Timeline entries with provenance badges for every state change above |
+
+Optional 30-second extension when a second writable volume is mounted:
+
+| Time | Action | Evidence that must be visible |
+| --- | --- | --- |
+| 2:50 | Placement (⌘7) → **Choose Source…** on a small model folder → pick the second volume → **Plan Copy (Dry Run)** | Plan card with file count, data, “Required (data + 20% margin)”, “Available … purgeable space not counted”, `ESTIMATE` badge; nothing created yet |
+| 3:00 | **Copy…** → read the dialog aloud → **Copy** | Confirmation names both paths and says the original is never deleted; progress bar advances; **Cancel** visible |
+| 3:15 | Result card, then Finder | “Copy completed”, size-verified count, “The original is untouched”; both trees exist; the journal lists `Planned`, `Started`, `Completed` |
+
+Restore the Warning slider to 20% after recording. Do not include volumes,
+mount sources, quota lines or placement paths that reveal private names.
+
 ## Honest fallback
 
 If a collector is unavailable, demonstrate the unavailable state, the bundled
@@ -106,8 +137,5 @@ output.
 
 ## Future work (challenge bonus)
 
-- Validate a real NFSv4.1/pNFS metadata/data-server setup, including network loss and recovery.
-- Validate enforced user quotas and grace periods on a disposable server. Current-user soft/hard limits are displayed, alerted and included conservatively in placement when reported.
-- Add workload/process attribution before making model-specific performance claims.
-- Measure incident diagnosis time against Activity Monitor plus command-line tools with the same tasks and operators; do not assert superiority before that comparison.
-- Complete production accessibility, Instruments, signing and notarization gates.
+The ordered list lives in the README under [Future work](../README.md#future-work)
+so judges find it without opening the demo script.

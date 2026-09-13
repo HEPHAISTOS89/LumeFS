@@ -62,4 +62,34 @@ final class QuotaCollectorTests: XCTestCase {
         XCTAssertEqual(snapshots[0].softLimitBytes, 131_072)
         XCTAssertEqual(snapshots[0].hardLimitBytes, 262_144)
     }
+
+    func testCoverageStatesTheCurrentUserLimitAndTheAdministratorCommand() {
+        let coverage = QuotaCoverage.current(subject: "alice")
+        XCTAssertEqual(coverage.scope, "current-user")
+        XCTAssertEqual(coverage.subject, "alice")
+        XCTAssertEqual(coverage.administratorCommand, "sudo repquota -a -v")
+        XCTAssertTrue(coverage.note.contains("never requests"))
+    }
+
+    func testGuidanceDependsOnTheFileSystemKind() {
+        let apfs = QuotaCoverage.guidance(for: volume(kind: .apfs, source: "/dev/disk3s5"))
+        XCTAssertTrue(apfs.contains("APFS does not enforce per-user quotas"))
+        XCTAssertTrue(apfs.contains("sudo repquota -a -v"))
+
+        let nfs = QuotaCoverage.guidance(for: volume(kind: .nfs, source: "models.example.test:/srv/models"))
+        XCTAssertTrue(nfs.contains("enforced on models.example.test"))
+        XCTAssertTrue(nfs.contains("rquotad"))
+
+        let other = QuotaCoverage.guidance(for: volume(kind: .other, source: "/dev/disk9s1"))
+        XCTAssertTrue(other.contains("on this Mac"))
+        XCTAssertTrue(other.contains("changes nothing"))
+    }
+
+    private func volume(kind: FileSystemKind, source: String) -> VolumeSnapshot {
+        VolumeSnapshot(
+            id: source, name: "Volume", mountPoint: "/Volumes/Volume", source: source,
+            fileSystem: kind, fileSystemName: kind.rawValue.lowercased(), totalBytes: 1_000,
+            availableBytes: 500, isReadOnly: false, isLocal: kind != .nfs, capturedAt: Date(timeIntervalSince1970: 0)
+        )
+    }
 }

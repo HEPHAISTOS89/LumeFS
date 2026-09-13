@@ -67,7 +67,10 @@ struct MountCollector: Sendable {
             capturedAt: date,
             smartStatus: nil,
             apfsVolumeQuotaBytes: nil,
-            apfsVolumeReserveBytes: nil
+            apfsVolumeReserveBytes: nil,
+            fileNodesTotal: UInt64(fileSystem.f_files),
+            fileNodesFree: UInt64(fileSystem.f_ffree),
+            apfs: nil
         )
     }
 

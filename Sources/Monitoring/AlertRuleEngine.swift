@@ -7,10 +7,15 @@ struct AlertRuleEngine: Sendable {
         nfs: NFSClientMetrics,
         previousNFS: NFSClientMetrics?,
         capacityThresholds: CapacityThresholds = .default,
-        quotas: [QuotaSnapshot] = []
+        quotas: [QuotaSnapshot] = [],
+        nfsMounts: [NFSMountInfo] = [],
+        nfsUserRates: [NFSUserActivityRate] = [],
+        nfsUserThresholds: NFSUserAlertThresholds = .default
     ) -> [MonitoringAlert] {
         var alerts = volumeAlerts(volumes, thresholds: capacityThresholds)
         alerts.append(contentsOf: deviceAlerts(samples))
+        alerts.append(contentsOf: nfsMountAlerts(nfsMounts, volumes: volumes))
+        alerts.append(contentsOf: nfsUserAlerts(nfsUserRates, thresholds: nfsUserThresholds))
         alerts.append(contentsOf: quotas.compactMap { quota in
             guard let severity = quota.limitSeverity else { return nil }
             return MonitoringAlert(
@@ -40,40 +45,62 @@ struct AlertRuleEngine: Sendable {
         _ volumes: [VolumeSnapshot],
         thresholds: CapacityThresholds
     ) -> [MonitoringAlert] {
-        volumes.compactMap { volume in
-            if let smartStatus = volume.smartStatus,
-               smartStatus.caseInsensitiveCompare("Verified") != .orderedSame {
-                return MonitoringAlert(
-                    id: "smart-\(volume.id)",
-                    ruleID: "device.smart.unhealthy",
-                    severity: .critical,
-                    title: "Storage health requires attention",
-                    message: "\(volume.name) reports SMART status \(smartStatus).",
-                    evidence: "SMART status: \(smartStatus)",
-                    recommendation: "Pause write-heavy workloads and inspect the device before continuing.",
-                    relatedVolumeID: volume.id,
-                    createdAt: volume.capturedAt,
-                    provenance: .live
-                )
+        volumes.flatMap { volume -> [MonitoringAlert] in
+            var alerts: [MonitoringAlert] = []
+            if let smart = smartAlert(for: volume) {
+                alerts.append(smart)
             }
 
             let capacitySeverity = volume.capacitySeverity(thresholds: thresholds)
             if capacitySeverity == .critical {
-                return capacityAlert(
+                alerts.append(capacityAlert(
                     for: volume,
                     severity: .critical,
                     threshold: MetricFormatter.percentage(thresholds.criticalFreeFraction)
-                )
-            }
-
-            if capacitySeverity == .warning {
-                return capacityAlert(
+                ))
+            } else if capacitySeverity == .warning {
+                alerts.append(capacityAlert(
                     for: volume,
                     severity: .warning,
                     threshold: MetricFormatter.percentage(thresholds.warningFreeFraction)
-                )
+                ))
             }
+            return alerts
+        }
+    }
 
+    /// Absence of SMART data ("Not Supported", empty) is not a fault. Only explicit
+    /// failure wording is critical; unknown wording is surfaced as a notice so an
+    /// operator can look at it without a false red alert.
+    private func smartAlert(for volume: VolumeSnapshot) -> MonitoringAlert? {
+        switch volume.smartAssessment {
+        case let .degraded(raw):
+            return MonitoringAlert(
+                id: "smart-\(volume.id)",
+                ruleID: "device.smart.unhealthy",
+                severity: .critical,
+                title: "Storage health requires attention",
+                message: "\(volume.name) reports SMART status \(raw).",
+                evidence: "SMART status: \(raw)",
+                recommendation: "Pause write-heavy workloads and inspect the device before continuing.",
+                relatedVolumeID: volume.id,
+                createdAt: volume.capturedAt,
+                provenance: .live
+            )
+        case let .unrecognized(raw):
+            return MonitoringAlert(
+                id: "smart-unrecognized-\(volume.id)",
+                ruleID: "device.smart.unrecognized",
+                severity: .notice,
+                title: "SMART status not recognized",
+                message: "\(volume.name) reports an unfamiliar SMART status.",
+                evidence: "SMART status: \(raw)",
+                recommendation: "Check the device with Disk Utility. LumeFS does not treat unknown wording as a failure.",
+                relatedVolumeID: volume.id,
+                createdAt: volume.capturedAt,
+                provenance: .live
+            )
+        case .verified, .notSupported:
             return nil
         }
     }
@@ -114,6 +141,108 @@ struct AlertRuleEngine: Sendable {
                 createdAt: sample.timestamp,
                 provenance: .live
             )
+        }
+    }
+
+    /// Kernel-reported mount state from `nfsstat -m`. Only LIVE records with an
+    /// explicit flag raise anything; an UNAVAILABLE record is missing evidence.
+    private func nfsMountAlerts(
+        _ mounts: [NFSMountInfo],
+        volumes: [VolumeSnapshot]
+    ) -> [MonitoringAlert] {
+        mounts.compactMap { mount -> MonitoringAlert? in
+            guard mount.provenance == .live else { return nil }
+            let volumeID = volumes.first { $0.mountPoint == mount.mountPoint }?.id
+            let target = "\(mount.displayServer):\(mount.displayExport)"
+            let flags = mount.statusFlags.joined(separator: ", ")
+
+            if mount.isDead {
+                return MonitoringAlert(
+                    id: "nfs-mount-dead-\(mount.id)",
+                    ruleID: "nfs.mount.dead",
+                    severity: .critical,
+                    title: "NFS mount is dead",
+                    message: "\(mount.mountPoint) (\(target)) was marked dead by the kernel.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Operations on this mount will fail. Unmount it, restore the server, and mount again.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            if mount.isNotResponding {
+                return MonitoringAlert(
+                    id: "nfs-mount-notresp-\(mount.id)",
+                    ruleID: "nfs.mount.not_responding",
+                    severity: .critical,
+                    title: "NFS server not responding",
+                    message: "\(mount.mountPoint) (\(target)) is not responding.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Pause checkpoint writes to this mount and check the server and network path.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            if mount.inRecovery {
+                return MonitoringAlert(
+                    id: "nfs-mount-recovery-\(mount.id)",
+                    ruleID: "nfs.mount.recovery",
+                    severity: .warning,
+                    title: "NFS mount is recovering",
+                    message: "\(mount.mountPoint) (\(target)) is in state recovery.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Expect latency until recovery completes. Avoid starting new large writes.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            return nil
+        }
+    }
+
+    /// Server-side per-user bursts from `nfsstat -u` deltas. Alert text carries the
+    /// masked client address; the full address stays in the Attribution view.
+    private func nfsUserAlerts(
+        _ rates: [NFSUserActivityRate],
+        thresholds: NFSUserAlertThresholds
+    ) -> [MonitoringAlert] {
+        rates.flatMap { rate -> [MonitoringAlert] in
+            guard rate.activity.provenance == .live else { return [] }
+            let who = "\(rate.activity.user) from \(rate.activity.maskedAddress)"
+            let window = rate.intervalSeconds.formatted(.number.precision(.fractionLength(0...1)))
+            var alerts: [MonitoringAlert] = []
+
+            if rate.writeBytesPerSecond >= thresholds.writeBytesPerSecond {
+                alerts.append(MonitoringAlert(
+                    id: "nfs-user-write-\(rate.id)",
+                    ruleID: "nfs.user.write_burst",
+                    severity: .warning,
+                    title: "NFS user write burst",
+                    message: "\(who) is writing \(MetricFormatter.throughput(rate.writeBytesPerSecond)) to \(rate.activity.export).",
+                    evidence: "\(MetricFormatter.throughput(rate.writeBytesPerSecond)) over \(window) s; threshold \(MetricFormatter.throughput(thresholds.writeBytesPerSecond))",
+                    recommendation: "Confirm this job is expected. If not, contact the user before the export fills up; LumeFS does not stop clients.",
+                    relatedVolumeID: nil,
+                    createdAt: rate.activity.capturedAt,
+                    provenance: .live
+                ))
+            }
+            if rate.requestsPerSecond >= thresholds.requestsPerSecond {
+                alerts.append(MonitoringAlert(
+                    id: "nfs-user-requests-\(rate.id)",
+                    ruleID: "nfs.user.request_burst",
+                    severity: .warning,
+                    title: "NFS user request burst",
+                    message: "\(who) is issuing \(rate.requestsPerSecond.formatted(.number.precision(.fractionLength(0)))) requests/s on \(rate.activity.export).",
+                    evidence: "\(rate.requestsPerSecond.formatted(.number.precision(.fractionLength(0)))) requests/s over \(window) s; threshold \(thresholds.requestsPerSecond.formatted(.number.precision(.fractionLength(0))))",
+                    recommendation: "Metadata storms (many small files, retries in a loop) look like this. Check the client's job before it degrades the server.",
+                    relatedVolumeID: nil,
+                    createdAt: rate.activity.capturedAt,
+                    provenance: .live
+                ))
+            }
+            return alerts
         }
     }
 

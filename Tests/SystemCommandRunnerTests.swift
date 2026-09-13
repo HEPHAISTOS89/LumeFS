@@ -91,6 +91,45 @@ final class SystemCommandRunnerTests: XCTestCase {
         await XCTAssertNoThrowAsync {
             try await self.runner.validate(.quota, arguments: ["-uv"])
         }
+        await XCTAssertNoThrowAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "/Volumes/models"])
+        }
+        await XCTAssertNoThrowAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-u", "-n", "net", "-f", "JSON"])
+        }
+        await XCTAssertNoThrowAsync {
+            try await self.runner.validate(.nfsd, arguments: ["status"])
+        }
+    }
+
+    func testRejectsEveryStateChangingNFSDSubcommand() async {
+        for arguments in [["start"], ["stop"], ["enable"], ["disable"], ["update"], ["restart"],
+                          ["status", "verbose"], ["-F", "/tmp/exports", "checkexports"], []] {
+            await XCTAssertThrowsErrorAsync {
+                try await self.runner.validate(.nfsd, arguments: arguments)
+            }
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-u", "-f", "JSON"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-u", "-n", "user", "-f", "JSON"])
+        }
+    }
+
+    func testRejectsNFSMountQueriesOutsideTheSingleMountShape() async {
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "Volumes/models"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "/a", "/b"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "-z"])
+        }
     }
 
     func testRejectsUnexpectedOptionsAndControlCharacters() async {

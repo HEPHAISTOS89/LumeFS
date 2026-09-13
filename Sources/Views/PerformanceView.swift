@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PerformanceView: View {
     let store: MonitoringStore
+    @AppStorage("benchmarkMebibytes") private var benchmarkMebibytes = BenchmarkGuard.defaultMebibytes
 
     var body: some View {
         ScrollView {
@@ -80,26 +81,46 @@ struct PerformanceView: View {
 
     private var benchmarkSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            HStack(spacing: LayoutMetrics.rowSpacing) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Quick speed test")
                         .font(.headline)
-                    Text("128 MiB temporary file · removed after the test")
+                    Text("\(benchmarkMebibytes) MiB temporary file · uncached write, uncached read, cached read · removed after the test")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button {
-                    Task { await store.runBenchmark() }
-                } label: {
-                    if store.isBenchmarkRunning {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
+                Picker("Size", selection: $benchmarkMebibytes) {
+                    ForEach(BenchmarkGuard.selectableMebibytes, id: \.self) { size in
+                        Text("\(size) MiB").tag(size)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 110)
+                .disabled(store.isBenchmarkRunning)
+                .help("Temporary file size; the volume must have twice that amount free")
+                .accessibilityLabel("Benchmark size")
+
+                if store.isBenchmarkRunning {
+                    Button {
+                        store.cancelBenchmark()
+                    } label: {
+                        ProductLabel("Cancel", systemImage: "xmark.circle")
+                    }
+                    .help("Stop the benchmark; the temporary file is removed")
+                } else {
+                    Button {
+                        store.startBenchmark(mebibytes: benchmarkMebibytes)
+                    } label: {
                         ProductLabel("Run benchmark", systemImage: "speedometer")
                     }
                 }
-                .disabled(store.isBenchmarkRunning)
+            }
+
+            if store.isBenchmarkRunning {
+                ProgressView()
+                    .progressViewStyle(.linear)
+                    .accessibilityLabel("Benchmark running")
             }
 
             if let result = store.benchmarkResult {
@@ -117,11 +138,12 @@ struct PerformanceView: View {
                 }
 
                 ProductLabel(
-                    "Synchronized write · immediate read may use the macOS cache · temporary file removed",
+                    benchmarkCaveat(result),
                     systemImage: "checkmark.shield"
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             }
 
             if let error = store.benchmarkError {
@@ -132,15 +154,25 @@ struct PerformanceView: View {
         }
     }
 
+    private func benchmarkCaveat(_ result: BenchmarkResult) -> String {
+        let sync = result.writeUsedFullSync ? "F_FULLFSYNC" : "fsync only (F_FULLFSYNC refused)"
+        return "Write bypassed the cache and was flushed with \(sync) · uncached read used F_NOCACHE on non-resident pages (drive cache may still help) · cached read is the second pass from the macOS cache · temporary file removed"
+    }
+
     @ViewBuilder
     private func benchmarkMetrics(result: BenchmarkResult) -> some View {
         PerformanceMetric(
-            title: "Benchmark read",
-            value: MetricFormatter.throughput(result.readBytesPerSecond),
+            title: "Uncached read",
+            value: MetricFormatter.throughput(result.uncachedReadBytesPerSecond),
             color: .blue
         )
         PerformanceMetric(
-            title: "Benchmark write",
+            title: "Cached read",
+            value: MetricFormatter.throughput(result.cachedReadBytesPerSecond),
+            color: .indigo
+        )
+        PerformanceMetric(
+            title: "Write",
             value: MetricFormatter.throughput(result.writeBytesPerSecond),
             color: .teal
         )
@@ -208,8 +240,34 @@ struct PerformanceView: View {
                 }
             }
 
+            if !store.nfsMounts.isEmpty {
+                mountList
+            }
+
             Divider()
             replaySection
+        }
+    }
+
+    private var mountList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Mounts").font(.callout.weight(.medium))
+            ForEach(store.nfsMounts) { mount in
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    ProductIcon(systemName: mount.isResponding ? "network" : "network.slash")
+                        .foregroundStyle(mount.isResponding ? Color.secondary : Color.red)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(mount.mountPoint).font(.callout.monospaced())
+                        Text("\(mount.displayServer):\(mount.displayExport) · \(mount.nfsVersion.map { "NFSv\($0)" } ?? "version not reported") · \(mount.statusLabel)")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ProvenanceBadge(provenance: mount.provenance)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Text("Per-mount throughput is not exposed by macOS; counters above are client-wide.")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 

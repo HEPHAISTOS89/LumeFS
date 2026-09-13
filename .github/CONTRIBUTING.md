@@ -8,8 +8,11 @@ must remain small, reviewable, and evidence-backed.
 
 Requirements:
 
-- macOS 14 or newer;
-- Xcode with a macOS 14 SDK or newer;
+- macOS 14 or newer to run the app;
+- Xcode 16 or newer to build (CI uses the `macos-15` image). Wrap any symbol
+  that exists only in a newer SDK with `#if compiler(>=X.Y)` plus an
+  `#available` check and keep a native fallback, so the CI toolchain still
+  compiles;
 - XcodeGen only when changing `project.yml` or regenerating the project.
 
 Run the repository check before opening a pull request:

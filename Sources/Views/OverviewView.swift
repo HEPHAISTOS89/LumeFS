@@ -281,8 +281,6 @@ private struct WorkloadReadinessRow: View {
 }
 
 private struct MetricCell: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @AppStorage("interfaceAnimations") private var interfaceAnimations = true
     let title: String
     let value: String
     let detail: String
@@ -300,8 +298,6 @@ private struct MetricCell: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(value)
-                    .contentTransition(.numericText())
-                    .animation(reduceMotion || !interfaceAnimations ? nil : .easeInOut(duration: 0.22), value: value)
                     .font(.title3.weight(.semibold))
                     .monospacedDigit()
                 Text(detail)
@@ -321,9 +317,20 @@ private struct MetricCell: View {
 
 struct ThroughputChart: View {
     let samples: [DeviceIOSample]
+    @State private var selectedTimestamp: Date?
 
     private var displayedSamples: ArraySlice<DeviceIOSample> {
         samples.suffix(120)
+    }
+
+    private var selectedSample: DeviceIOSample? {
+        guard let selectedTimestamp,
+              let first = displayedSamples.first,
+              let last = displayedSamples.last,
+              (first.timestamp...last.timestamp).contains(selectedTimestamp) else { return nil }
+        return displayedSamples.min {
+            abs($0.timestamp.timeIntervalSince(selectedTimestamp)) < abs($1.timestamp.timeIntervalSince(selectedTimestamp))
+        }
     }
 
     var body: some View {
@@ -367,6 +374,39 @@ struct ThroughputChart: View {
                     .symbolSize(34)
                 }
             }
+
+            if let selectedSample {
+                RuleMark(x: .value("Selected time", selectedSample.timestamp))
+                    .foregroundStyle(.secondary)
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    .annotation(position: .top, alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(selectedSample.timestamp, format: .dateTime.hour().minute().second())
+                                .foregroundStyle(.secondary)
+                            Text("Read \(MetricFormatter.throughput(selectedSample.readBytesPerSecond))")
+                                .foregroundStyle(.blue)
+                            Text("Write \(MetricFormatter.throughput(selectedSample.writeBytesPerSecond))")
+                                .foregroundStyle(.teal)
+                        }
+                        .font(.caption2.monospacedDigit())
+                        .padding(6)
+                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6))
+                    }
+
+                PointMark(
+                    x: .value("Selected time", selectedSample.timestamp),
+                    y: .value("Selected read", selectedSample.readBytesPerSecond)
+                )
+                .foregroundStyle(.blue)
+                .symbolSize(48)
+
+                PointMark(
+                    x: .value("Selected time", selectedSample.timestamp),
+                    y: .value("Selected write", selectedSample.writeBytesPerSecond)
+                )
+                .foregroundStyle(.teal)
+                .symbolSize(48)
+            }
         }
         .chartForegroundStyleScale([
             "Read": Color.blue,
@@ -375,6 +415,38 @@ struct ThroughputChart: View {
         .chartLegend(position: .top, alignment: .trailing, spacing: 12)
         .chartYScale(domain: .automatic(includesZero: true))
         .chartXScale(range: .plotDimension(startPadding: 8, endPadding: 24))
+        .chartXSelection(value: $selectedTimestamp)
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                if let plotFrame = proxy.plotFrame {
+                    let frame = geometry[plotFrame]
+                    Rectangle()
+                        .fill(.clear)
+                        .contentShape(Rectangle())
+                        .onContinuousHover { phase in
+                            switch phase {
+                            case let .active(location):
+                                guard frame.contains(location) else { return }
+                                selectedTimestamp = proxy.value(atX: location.x - frame.minX)
+                            case .ended:
+                                selectedTimestamp = nil
+                            }
+                        }
+                        .simultaneousGesture(
+                            SpatialTapGesture().onEnded { value in
+                                guard frame.contains(value.location) else { return }
+                                selectedTimestamp = proxy.value(atX: value.location.x - frame.minX)
+                            }
+                        )
+                        .simultaneousGesture(
+                            DragGesture(minimumDistance: 0).onChanged { value in
+                                guard frame.contains(value.location) else { return }
+                                selectedTimestamp = proxy.value(atX: value.location.x - frame.minX)
+                            }
+                        )
+                }
+            }
+        }
         .chartPlotStyle { plotArea in
             plotArea
                 .background(.quaternary.opacity(0.14))
@@ -413,7 +485,10 @@ struct ThroughputChart: View {
             return "No samples"
         }
 
-        return "Showing \(displayedSamples.count) of \(samples.count) retained samples. Latest read \(MetricFormatter.throughput(latest.readBytesPerSecond)); latest write \(MetricFormatter.throughput(latest.writeBytesPerSecond))."
+        let selected = selectedSample.map {
+            " Selected read \(MetricFormatter.throughput($0.readBytesPerSecond)); selected write \(MetricFormatter.throughput($0.writeBytesPerSecond))."
+        } ?? ""
+        return "Showing \(displayedSamples.count) of \(samples.count) retained samples. Latest read \(MetricFormatter.throughput(latest.readBytesPerSecond)); latest write \(MetricFormatter.throughput(latest.writeBytesPerSecond)).\(selected)"
     }
 }
 

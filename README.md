@@ -40,22 +40,57 @@ alert that used it.
 
 - Overview of `/`, volumes mounted below `/Volumes`, and NFS mounts.
 - APFS mount capacity plus SMART status, reserve, and quota metadata when
-  `diskutil` provides those fields.
+  `diskutil` provides those fields, and a read-only container/device pane:
+  container size and shared free space, physical stores, encryption /
+  FileVault / locked state, sealed system volume, bus and media type, file-node
+  counts from `statfs`, and a “Copy verify command” button (LumeFS never runs
+  `fsck`).
 - Whole-device read/write rates and error counters from IOKit.
 - System-wide NFS client RPC and NFSv4.1 layout counters from `nfsstat`.
+- Per-mount NFS information (server, export, version, transport, mount
+  parameters, kernel `dead` / `not responding` / `recovery` flags) from
+  `nfsstat -m`, with alerts driven only by those kernel flags.
+- Local process attribution: per-process disk read/write rates from
+  `proc_pid_rusage` (name, PID, user, 2 s deltas), coverage counts for
+  processes the kernel refuses without administrator rights, and a name-based
+  “AI runtime?” hint (exo, openclaw, ollama, python, …) that is labeled as a
+  heuristic.
+- Per-user NFS attribution on a Mac that runs `nfsd` (`nfsstat -u`): user,
+  export, masked client address, request and byte deltas, idle time, plus
+  deterministic write-burst and request-burst alerts with documented, adjustable
+  thresholds. Shown as unavailable, never simulated, on a pure client.
 - Current-user quota rows parsed into byte limits when recognized, with raw
   evidence fallback and an explicit unavailable state.
-- A 128 MiB bounded temporary-file benchmark with explicit `BENCHMARK`
-  provenance and cleanup status.
+- A bounded temporary-file benchmark (128–1,024 MiB, cancellable) that labels
+  three passes separately: uncached write with `F_FULLFSYNC`, uncached read
+  through `F_NOCACHE`, and cached read from the macOS buffer cache, with
+  explicit `BENCHMARK` provenance and cleanup status.
 - A workload-placement estimate with a 20% capacity margin and conservative current-user quota headroom when structured live limits match the volume.
+- A Placement view (⌘7) that turns the estimate into an additive copy: choose
+  a source folder or file and a writable volume or folder, run a dry run
+  (inventory, destination checks, free space with the same 20% margin,
+  labeled `ESTIMATE`), confirm once in a dialog, then copy with progress and
+  Cancel. Files go through `copyfile(3)` (metadata preserved, exclusive
+  create, APFS clone when on the same volume) and are size-verified; the
+  original is never deleted, moved or modified, and existing data is never
+  overwritten. Every plan and outcome is journaled locally.
 - Opt-in FSEvents monitoring that reports aggregate operations under a selected
   root label without displaying event paths or reading file contents.
 - A bundled pNFS JSON replay, visibly labeled `REPLAY`, for deterministic parser
   evidence when live pNFS counters are absent.
 - Capacity, user-quota, storage-error, NFS-timeout, and NFS-retry alerts with evidence and a
   recommended next step.
-- Native SwiftUI views for Overview, Volumes, I/O Performance, Activity, and
-  Alerts, plus a Settings window.
+- Alert history with an active / acknowledged / cleared lifecycle per
+  occurrence, kept across launches in Application Support (500 entries, open
+  alerts never trimmed), with an Acknowledge action that never silences a rule.
+- Snapshot export to JSON or CSV (File menu, ⇧⌘E / ⌥⇧⌘E): every value the UI
+  shows with its own timestamp and provenance, plus the alert history; NFS
+  client addresses masked unless you opted into full addresses.
+- Opt-in macOS notifications for critical alerts only: one per refresh, the
+  same alert at most once per 10 minutes, title only, nothing requested from
+  macOS until you turn it on.
+- Native SwiftUI views for Overview, Volumes, I/O Performance, Attribution,
+  Activity, Placement, and Alerts, plus a Settings window.
 
 See [Metrics](docs/METRICS.md) for exact definitions and caveats.
 
@@ -85,11 +120,14 @@ LumeFS uses no third-party runtime dependencies.
 | Mounted volumes and capacity | `getfsstat(2)` | Visible APFS/NFS mounts |
 | APFS metadata | `/usr/sbin/diskutil info -plist` | One discovered APFS mount at a time |
 | Block I/O | IOKit `IOMedia` statistics | Whole devices, not individual processes or files |
+| Process disk I/O | `sysctl(KERN_PROC_ALL)` + libproc `proc_pid_rusage` | Current user's processes (kernel `CHECK_SAME_USER`); other users counted as not permitted |
 | NFS client metrics | `/usr/bin/nfsstat -f JSON -c` | System-wide cumulative client counters |
+| NFS mount information | `/usr/bin/nfsstat -m -f JSON <mount point>` | One discovered NFS mount at a time: server, export, version, transport, parameters, kernel status flags |
+| NFS users (server side) | `/usr/bin/nfsstat -u -n net -f JSON`, `/sbin/nfsd status` | Per user and client address, per export, on a Mac that runs `nfsd`; requests, bytes, idle; deltas over 3 s |
 | Quota status | `/usr/bin/quota -uv` | Current user; recognized local/remote rows plus raw fallback |
 
-The refresh loop runs once per second. Block I/O is sampled each refresh; mounts
-and APFS metadata are refreshed every 10 cycles, NFS every 3 cycles, and quota
+The refresh loop runs once per second. Block I/O is sampled each refresh; process disk I/O every 2 cycles; mounts,
+APFS metadata and NFS mount information are refreshed every 10 cycles, NFS client counters every 3 cycles, and quota
 every 30 cycles after their initial collection.
 
 Read [Architecture](docs/ARCHITECTURE.md) for the component and trust-boundary
@@ -97,8 +135,11 @@ details.
 
 ## Requirements
 
-- macOS 14 or newer.
-- Xcode with the macOS 14 SDK or newer.
+- macOS 14 or newer to run the app (deployment target 14.0).
+- Xcode 16 or newer to build. CI builds and tests on the GitHub `macos-15`
+  image (Xcode 16); the maintainer also validates on Xcode 26. Code that uses
+  macOS 26 SDK symbols is guarded with `#if compiler(>=6.2)` so older
+  toolchains keep compiling with a native fallback.
 - XcodeGen only when regenerating `LumeFS.xcodeproj` from `project.yml`.
 
 No NFS server is required to build or run the app. The optional local NFS lab
@@ -150,12 +191,19 @@ its cleanup step afterward.
 - Collection is local; the source tree contains no analytics or network client.
 - LumeFS does not inspect file contents.
 - Mount paths, device names, quota command output, and the current username can
-  appear in the UI. Do not publish screenshots without reviewing them.
+  appear in the UI, in the alert-history file under Application Support, and in
+  exports you save. Do not publish screenshots or exports without reviewing
+  them. Notifications carry alert titles only.
+- The Placement journal (`migration-journal.json`, same folder) records the
+  full source and destination paths of every plan and copy, 200 entries at
+  most. Placement itself only creates files: it never deletes, moves,
+  overwrites or merges, including after a cancel or an error, and it copies
+  only after you confirm a dialog that names both paths.
 - The app is currently built with the App Sandbox disabled because it reads
   system storage interfaces. Hardened Runtime is enabled.
 - System commands are launched with `Process.executableURL` and argument arrays,
   not through a shell. The executable set is limited to `diskutil`, `nfsstat`,
-  and `quota`.
+  `nfsd` (`status` only) and `quota`.
 - The runner enforces a per-command argument shape, rejects control characters,
   uses a minimal system-only environment, terminates after five seconds with
   SIGTERM/SIGKILL escalation, and caps stdout/stderr at one MiB each.
@@ -177,18 +225,76 @@ defines the evidence required before release.
   does not replace capacity.
 - Recognized quota rows are mapped by their filesystem string; unrecognized
   output remains one raw, all-filesystems message.
-- Quota scope is the current user, not administration of all users. Soft limits are treated conservatively; grace periods and inode limits are not evaluated. A capacity estimate is not a write-permission guarantee.
+- Quota scope is the current user, not administration of all users; LumeFS
+  never requests administrator rights. The volume detail says so, explains
+  what applies to APFS (no per-user quotas), NFS (enforced on the server) and
+  other file systems, and copies `sudo repquota -a -v` for you to run in
+  Terminal. Exports carry the same `quotaCoverage` statement. Soft limits are
+  treated conservatively; grace periods and inode limits are not evaluated. A
+  capacity estimate is not a write-permission guarantee.
 - Settings appearance (System/Light/Dark), optional numeric animations, and thresholds are persisted and read on refresh; they are not versioned
-  with historical alerts.
-- Benchmark reads happen immediately after writes and may be served by the
-  macOS cache; results are not raw-device performance.
+  with historical alerts (a history entry does not record which threshold was
+  in force when it was raised).
+- Alert history clear times are refresh times; an alert still open when the app
+  quits is closed at the first refresh after relaunch. Acknowledging is
+  bookkeeping only and does not stop a rule from firing.
+- The benchmark's “uncached read” bypasses the macOS buffer cache
+  (`F_NOCACHE` on never-resident pages) but not the drive's own cache, APFS
+  compression or thermal state; the “cached read” is deliberately a
+  buffer-cache figure. Neither is raw-media performance or a multi-run
+  statistic.
 - FSEvents monitoring is opt-in and aggregate, but selected root labels can still
   disclose folder names in the Activity view.
+- Placement copies, it does not migrate: freeing the source is a decision you
+  take yourself after checking the copy. The dry run counts logical bytes, so
+  the destination may allocate more or (with compression or clones) less;
+  purgeable space is not counted as free. Verification is a per-file size
+  comparison, not a checksum. Directories are recreated with default
+  attributes; a cancel leaves the file in flight incomplete and the result
+  names it. A same-volume copy frees nothing and becomes an APFS clone.
 - The current test suite covers selected collectors, command shapes, benchmark
   guardrails/cleanup, FSEvents aggregation/redaction, alert thresholds,
-  readiness calculations, formatting, structured quota rows, and NFS parsing.
-  It is not an end-to-end proof of every live collector, pNFS environment, or UI
-  flow.
+  readiness calculations, formatting, structured quota rows, NFS parsing, alert
+  history, exports, and the placement plan/copy against a temporary tree on
+  one APFS volume (so the same-volume clone path, not a cross-volume data
+  path). It is not an end-to-end proof of every live collector, pNFS
+  environment, or UI flow.
+
+## Future work
+
+Ordered by expected value for administrators of local AI storage. Items marked
+*platform* are limited by what macOS exposes, not by LumeFS.
+
+1. **Validated pNFS topology** (*platform*): the native macOS client does not
+   implement pNFS (`man 5 nfs`). LumeFS parses NFSv4.1 layout counters and ships
+   a visibly labeled replay. A real metadata/data-server validation needs a
+   different client or a sponsor-provided environment.
+2. **Per-user quota administration**: the permission boundary is now explicit
+   (current user only, copyable `sudo repquota -a -v`, per-file-system
+   guidance, `quotaCoverage` in exports). Running the report from the app
+   would require an authorization dialog and parsing `repquota` output; that
+   step, and server-side reports for NFS, remain future work. LumeFS will not
+   request root silently.
+3. **Sustained multi-run benchmark** with percentiles, device isolation and an
+   explicit wall-clock budget, so GB/s claims can be defended beyond one bounded
+   run.
+4. **Alert delivery integrations** (log shipping to a SIEM, webhook or e-mail)
+   built on the existing local alert history and JSON export, with the same
+   opt-in and no-spam rules as the macOS notifications already implemented.
+5. **APFS snapshots and container-wide view**: the per-volume pane now shows
+   container capacity, encryption and physical stores from `diskutil info`;
+   listing local snapshots and every volume of a container in one place would
+   need `diskutil apfs list -plist` (a new allowlisted command shape) and stays
+   read-only.
+6. **Time-to-full estimate** from the retained I/O and capacity history, labeled
+   `ESTIMATE`.
+7. **Placement follow-through**: checksum verification of copies, an explicit
+   opt-in “remove original after verified copy” step behind its own
+   confirmation, and directory attribute preservation. Today Placement copies
+   and journals only; it will never delete on its own.
+8. **Comparative evaluation** of incident-diagnosis time against Activity Monitor
+   plus command-line tools, with the same tasks and operators, before claiming
+   any productivity gain.
 
 ## Project documents
 
