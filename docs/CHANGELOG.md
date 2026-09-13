@@ -33,6 +33,14 @@ All notable project changes will be documented here.
   toolbar: the latest snapshot with per-record timestamps and provenance plus
   the alert history; NFS client addresses masked unless the user opted into
   full addresses.
+- APFS container and device pane in the volume detail (read-only, from the
+  existing `diskutil info -plist` call): container reference, size and shared
+  free space with a meter, physical stores, volume in use, encryption /
+  FileVault / locked, sealed, solid-state / internal / bus protocol, volume
+  UUID, plus `statfs` file-node counts. A “Copy verify command” button places
+  `diskutil verifyVolume "<mount point>"` on the clipboard; LumeFS never runs
+  `fsck`. Exports gain `file_nodes_used`, `apfs_container`,
+  `apfs_container_free_bytes` and `apfs_encryption` volume rows.
 - Opt-in macOS notifications for critical alerts (Settings › Notifications):
   one notification per refresh, 10-minute per-alert cooldown, alert title only,
   no permission request until enabled.

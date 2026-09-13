@@ -70,6 +70,11 @@ struct SnapshotExporter {
             add(volume.capturedAt, "volume", volume.mountPoint, "available_bytes", String(volume.availableBytes), "bytes", .live)
             add(volume.capturedAt, "volume", volume.mountPoint, "used_bytes", String(volume.usedBytes), "bytes", .live)
             add(volume.capturedAt, "volume", volume.mountPoint, "smart_status", volume.smartStatus ?? "", "", volume.smartStatus == nil ? .unavailable : .live)
+            add(volume.capturedAt, "volume", volume.mountPoint, "file_nodes_used", volume.fileNodesUsed.map(String.init) ?? "", "count", volume.fileNodesUsed == nil ? .unavailable : .live)
+            let apfsProvenance: DataProvenance = volume.apfs == nil ? .unavailable : .live
+            add(volume.capturedAt, "volume", volume.mountPoint, "apfs_container", volume.apfs?.containerReference ?? "", "", apfsProvenance)
+            add(volume.capturedAt, "volume", volume.mountPoint, "apfs_container_free_bytes", volume.apfs?.containerFreeBytes.map(String.init) ?? "", "bytes", apfsProvenance)
+            add(volume.capturedAt, "volume", volume.mountPoint, "apfs_encryption", volume.apfs?.encryptionLabel ?? "", "", apfsProvenance)
         }
 
         for sample in export.deviceSamples {

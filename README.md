@@ -40,7 +40,11 @@ alert that used it.
 
 - Overview of `/`, volumes mounted below `/Volumes`, and NFS mounts.
 - APFS mount capacity plus SMART status, reserve, and quota metadata when
-  `diskutil` provides those fields.
+  `diskutil` provides those fields, and a read-only container/device pane:
+  container size and shared free space, physical stores, encryption /
+  FileVault / locked state, sealed system volume, bus and media type, file-node
+  counts from `statfs`, and a “Copy verify command” button (LumeFS never runs
+  `fsck`).
 - Whole-device read/write rates and error counters from IOKit.
 - System-wide NFS client RPC and NFSv4.1 layout counters from `nfsstat`.
 - Per-mount NFS information (server, export, version, transport, mount
@@ -247,8 +251,11 @@ Ordered by expected value for administrators of local AI storage. Items marked
 4. **Alert delivery integrations** (log shipping to a SIEM, webhook or e-mail)
    built on the existing local alert history and JSON export, with the same
    opt-in and no-spam rules as the macOS notifications already implemented.
-5. **APFS container view**: snapshots, encryption state and physical-store health
-   in one place, read-only, using `diskutil apfs list -plist`.
+5. **APFS snapshots and container-wide view**: the per-volume pane now shows
+   container capacity, encryption and physical stores from `diskutil info`;
+   listing local snapshots and every volume of a container in one place would
+   need `diskutil apfs list -plist` (a new allowlisted command shape) and stays
+   read-only.
 6. **Time-to-full estimate** from the retained I/O and capacity history, labeled
    `ESTIMATE`.
 7. **Comparative evaluation** of incident-diagnosis time against Activity Monitor

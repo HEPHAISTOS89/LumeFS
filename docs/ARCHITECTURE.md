@@ -94,12 +94,24 @@ For every discovered APFS volume, the collector executes:
 /usr/sbin/diskutil info -plist <mount-point>
 ```
 
-It can replace the volume name and add SMART status, `CapacityQuota`, and
-`CapacityReserve`. Capacity and available bytes remain the `getfsstat` values;
-the collector deliberately does not substitute `APFSContainerFree`.
+It can replace the volume name and add SMART status, `CapacityQuota`,
+`CapacityReserve`, and an `APFSVolumeDetails` record (container reference, size
+and free bytes, physical stores, `CapacityInUse`, `Encryption` / `FileVault` /
+`Locked`, `Sealed`, `SolidState`, `Internal`, `BusProtocol`, `DeviceIdentifier`,
+`VolumeUUID`). Every detail is optional and a missing key stays nil. Capacity
+and available bytes remain the `getfsstat` values; the collector deliberately
+does not substitute `APFSContainerFree`, which is shown separately as the
+container-level shared free space. File-node counts (`f_files`, `f_ffree`) come
+from `MountCollector` and survive enrichment.
+
+The collector is strictly read-only: it never runs `fsck_apfs`,
+`diskutil verifyVolume`, `repairVolume` or `diskutil apfs` subcommands. The
+volume detail's “Copy verify command” only places
+`diskutil verifyVolume "<mount point>"` on the clipboard.
 
 If collection or property-list parsing fails, the original mount snapshot is
-retained without an explicit error field.
+retained without an explicit error field; the UI shows the APFS section as
+`UNAVAILABLE`.
 
 ### BlockIOCollector
 

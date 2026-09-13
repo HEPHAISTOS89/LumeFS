@@ -87,6 +87,9 @@ final class CollectorIntegrationTests: XCTestCase {
         XCTAssertNotNil(root)
         XCTAssertGreaterThan(root?.totalBytes ?? 0, 0)
         XCTAssertGreaterThanOrEqual(root?.availableBytes ?? -1, 0)
+        XCTAssertNotNil(root?.fileNodesTotal, "statfs always reports f_files")
+        XCTAssertNotNil(root?.fileNodesUsed)
+        XCTAssertNil(root?.apfs, "the mount collector never runs diskutil")
     }
 
     func testMountCollectorIncludesWritableDataVolumeWhenPresent() throws {
@@ -119,6 +122,11 @@ final class CollectorIntegrationTests: XCTestCase {
         XCTAssertEqual(enriched.availableBytes, root.availableBytes)
         XCTAssertFalse(enriched.name.isEmpty)
         XCTAssertNotNil(enriched.smartStatus)
+        let apfs = try XCTUnwrap(enriched.apfs, "diskutil answered, so the details struct exists even if keys are missing")
+        XCTAssertEqual(enriched.fileNodesTotal, root.fileNodesTotal, "enrichment keeps statfs file-node counts")
+        if let size = apfs.containerSizeBytes, let free = apfs.containerFreeBytes {
+            XCTAssertLessThanOrEqual(free, size)
+        }
     }
 
     func testDiskBenchmarkCompletesAndCleansUp() async throws {

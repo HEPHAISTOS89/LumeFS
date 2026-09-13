@@ -39,7 +39,8 @@ final class SnapshotExporterTests: XCTestCase {
 
         func rows(_ category: String) -> [String] { lines.filter { $0.split(separator: ",").dropFirst().first == Substring(category) } }
         XCTAssertEqual(rows("export").count, 2)
-        XCTAssertEqual(rows("volume").count, 6)
+        XCTAssertEqual(rows("volume").count, 10)
+        XCTAssertTrue(lines.contains("2027-01-15T08:00:00.000Z,volume,/Volumes/Data,apfs_container,,,UNAVAILABLE"), "no diskutil answer in the fixture")
         XCTAssertEqual(rows("device").count, 4)
         XCTAssertEqual(rows("nfs_client").count, 9)
         XCTAssertEqual(rows("nfs_mount").count, 5)

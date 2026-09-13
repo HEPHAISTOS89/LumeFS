@@ -40,6 +40,28 @@ multiplication also produces zero.
 | SMART status | `SMARTStatus` |
 | APFS volume quota | `CapacityQuota` when positive |
 | APFS reserve | `CapacityReserve` when positive |
+| Container reference / size / free | `APFSContainerReference`, `APFSContainerSize`, `APFSContainerFree` (non-negative) |
+| Physical stores | `APFSPhysicalStores[].DeviceIdentifier` |
+| Volume in use | `CapacityInUse` |
+| Encryption / FileVault / Locked | `Encryption`, `FileVault`, `Locked` (booleans) |
+| Sealed (signed system volume) | `Sealed` (“Yes”/“No” string or boolean) |
+| Device | `DeviceIdentifier`, `BusProtocol`, `SolidState`, `Internal` |
+| Volume UUID | `VolumeUUID` |
+
+Apple documents none of these keys as a stable interface; a missing key is
+shown as “Not reported”, never inferred. Container free space is shared by every
+volume in the container, which is also why an APFS volume's own `f_bavail` can
+shrink without that volume writing anything. The encryption label reports
+`Locked` first, then `Encrypted · FileVault`, `Encrypted`, `Not encrypted`.
+
+File-node counts come from `statfs` (`f_files`, `f_ffree`); used = total −
+free. APFS allocates inodes dynamically, so the “inventory” figure is not a
+ceiling and no alert is derived from it.
+
+LumeFS never runs `fsck_apfs`, `diskutil verifyVolume` or any repair. The
+volume detail offers a “Copy verify command” button that places
+`diskutil verifyVolume "<mount point>"` on the clipboard for the operator to run
+manually; that command is itself read-only (`fsck_apfs -n`).
 
 Overview “Lowest free space” is the free percentage of the discovered volume
 with the lowest available fraction. It is not a predicted exhaustion date.
@@ -292,7 +314,9 @@ applied snapshot with `exportedAt`, `appVersion`, `addressesMasked`, and every
 record's own `capturedAt` and provenance. JSON is the full model. CSV has one
 row per measurement: `captured_at,category,identifier,metric,value,unit,provenance`
 with categories `export`, `volume`, `device`, `nfs_client`, `nfs_mount`,
-`nfs_user`, `process`, `quota`, `alert` and `alert_history`. Byte values are
+`nfs_user`, `process`, `quota`, `alert` and `alert_history` (volume rows include
+`file_nodes_used`, `apfs_container`, `apfs_container_free_bytes` and
+`apfs_encryption`, `UNAVAILABLE` when `diskutil` did not answer). Byte values are
 integers, rates keep three decimals, non-finite numbers export as empty
 fields, and `.distantPast` timestamps (uncollected records) appear as year 0001.
 NFS client addresses are masked to their network prefix unless “Show full NFS

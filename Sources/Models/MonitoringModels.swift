@@ -107,9 +107,20 @@ struct VolumeSnapshot: Identifiable, Codable, Hashable, Sendable {
     var smartStatus: String?
     var apfsVolumeQuotaBytes: Int64?
     var apfsVolumeReserveBytes: Int64?
+    /// `statfs.f_files` / `f_ffree`. APFS allocates file nodes dynamically, so
+    /// these describe the current inventory, not a hard ceiling.
+    var fileNodesTotal: UInt64?
+    var fileNodesFree: UInt64?
+    /// Read-only container and device facts from `diskutil info -plist`.
+    var apfs: APFSVolumeDetails?
 
     var smartAssessment: SMARTAssessment {
         SMARTAssessment.assess(smartStatus)
+    }
+
+    var fileNodesUsed: UInt64? {
+        guard let fileNodesTotal, let fileNodesFree, fileNodesTotal >= fileNodesFree else { return nil }
+        return fileNodesTotal - fileNodesFree
     }
 
     func capacitySeverity(thresholds: CapacityThresholds) -> HealthSeverity {
@@ -130,6 +141,41 @@ struct VolumeSnapshot: Identifiable, Codable, Hashable, Sendable {
 
     var availableFraction: Double {
         1 - usedFraction
+    }
+}
+
+/// APFS facts `diskutil info -plist` reports for a mounted volume. Every field is
+/// optional because Apple documents none of the plist keys as stable; absent keys
+/// stay nil and are shown as “Not reported”.
+struct APFSVolumeDetails: Codable, Hashable, Sendable {
+    var deviceIdentifier: String?
+    var volumeUUID: String?
+    var containerReference: String?
+    var containerSizeBytes: Int64?
+    var containerFreeBytes: Int64?
+    var physicalStores: [String] = []
+    var capacityInUseBytes: Int64?
+    var isEncrypted: Bool?
+    var fileVaultEnabled: Bool?
+    var isLocked: Bool?
+    var isSealed: Bool?
+    var isSolidState: Bool?
+    var isInternal: Bool?
+    var busProtocol: String?
+
+    var containerUsedFraction: Double? {
+        guard let containerSizeBytes, containerSizeBytes > 0, let containerFreeBytes else { return nil }
+        return min(1, max(0, 1 - Double(containerFreeBytes) / Double(containerSizeBytes)))
+    }
+
+    var encryptionLabel: String {
+        switch (isEncrypted, fileVaultEnabled, isLocked) {
+        case (_, _, true?): return "Locked"
+        case (true?, true?, _): return "Encrypted · FileVault"
+        case (true?, _, _): return "Encrypted"
+        case (false?, _, _): return "Not encrypted"
+        default: return "Not reported"
+        }
     }
 }
 

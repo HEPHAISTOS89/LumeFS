@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct VolumesView: View {
@@ -103,6 +104,9 @@ private struct VolumeDetailView: View {
                 if volume.fileSystem == .nfs {
                     nfsMountSection
                 }
+                if volume.fileSystem == .apfs {
+                    apfsSection
+                }
                 quotaSection
                 Button(action: showPerformance) {
                     ProductLabel("View all-device I/O", systemImage: "chart.xyaxis.line")
@@ -149,6 +153,86 @@ private struct VolumeDetailView: View {
             }
             .padding(.vertical, 6)
         }
+    }
+
+    /// Read-only APFS facts. LumeFS never runs `fsck`; the verify command is
+    /// offered for the operator to paste into Terminal.
+    private var apfsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("APFS container and device").font(.headline).accessibilityAddTraits(.isHeader)
+                Spacer()
+                ProvenanceBadge(provenance: volume.apfs == nil ? .unavailable : .live)
+            }
+
+            if let apfs = volume.apfs {
+                VStack(alignment: .leading, spacing: 10) {
+                    if let fraction = apfs.containerUsedFraction,
+                       let size = apfs.containerSizeBytes,
+                       let free = apfs.containerFreeBytes {
+                        ProgressView(value: fraction)
+                            .tint(fraction > 0.9 ? .red : (fraction > 0.8 ? .orange : .accentColor))
+                            .accessibilityLabel("Container used")
+                            .accessibilityValue(MetricFormatter.percentage(fraction))
+                        HStack {
+                            Text("Container \(apfs.containerReference ?? "—") · \(MetricFormatter.bytes(size - free)) used of \(MetricFormatter.bytes(size))")
+                            Spacer()
+                            Text("\(MetricFormatter.bytes(free)) shared free")
+                        }
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    } else {
+                        detailRow("Container", apfs.containerReference ?? "Not reported")
+                    }
+
+                    detailRow("Physical store", apfs.physicalStores.isEmpty ? "Not reported" : apfs.physicalStores.joined(separator: ", "))
+                    detailRow("Device", [apfs.deviceIdentifier, apfs.busProtocol, apfs.isSolidState.map { $0 ? "solid state" : "rotational" }, apfs.isInternal.map { $0 ? "internal" : "external" }].compactMap { $0 }.joined(separator: " · ").nonEmpty ?? "Not reported")
+                    detailRow("Encryption", apfs.encryptionLabel)
+                    detailRow("Sealed", apfs.isSealed.map { $0 ? "Yes (signed system volume)" : "No" } ?? "Not reported")
+                    if let used = apfs.capacityInUseBytes {
+                        detailRow("Volume in use", MetricFormatter.bytes(used))
+                    }
+                    detailRow("File nodes", fileNodesLabel)
+                }
+                .padding(.vertical, 6)
+            } else {
+                Text("`diskutil info` has not answered for this mount yet, or the mount is not APFS. Capacity above is still the live `getfsstat` value.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                detailRow("File nodes", fileNodesLabel)
+            }
+
+            HStack(spacing: LayoutMetrics.compactSpacing) {
+                Text(verifyCommand)
+                    .font(.callout.monospaced())
+                    .textSelection(.enabled)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(verifyCommand, forType: .string)
+                } label: {
+                    ProductLabel("Copy verify command", systemImage: "doc.on.doc")
+                }
+                .controlSize(.small)
+                .help("Copies a read-only verification command. LumeFS never runs fsck or repairs a volume.")
+            }
+            Text("Verification is manual and read-only (`fsck_apfs -n` behind `diskutil verifyVolume`). Run it in Terminal when you decide to; it may take minutes.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var verifyCommand: String {
+        "diskutil verifyVolume \"\(volume.mountPoint)\""
+    }
+
+    private var fileNodesLabel: String {
+        guard let total = volume.fileNodesTotal, let used = volume.fileNodesUsed else { return "Not reported" }
+        return "\(used.formatted()) used · \(total.formatted()) inventory (APFS allocates dynamically)"
     }
 
     private var quotaSection: some View {
@@ -275,6 +359,19 @@ private struct VolumeDetailView: View {
     }
 
     private func detailRow(_ label: String, _ value: String) -> some View {
+        VolumeDetailRow(label: label, value: value)
+    }
+}
+
+private extension String {
+    var nonEmpty: String? { isEmpty ? nil : self }
+}
+
+private struct VolumeDetailRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: LayoutMetrics.contentSpacing) {
                 Text(label)
