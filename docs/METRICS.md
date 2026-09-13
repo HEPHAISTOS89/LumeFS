@@ -128,6 +128,34 @@ These are the client's negotiated parameters and kernel state, not per-mount
 throughput. macOS does not expose per-mount byte or operation counters; the
 client-wide counters above remain the only NFS traffic figures.
 
+## Process disk I/O
+
+Every second cycle the engine lists processes with `sysctl(KERN_PROC_ALL)` and
+reads `proc_pid_rusage(pid, RUSAGE_INFO_V4)` for each one. `ri_diskio_bytesread`
+and `ri_diskio_byteswritten` are the kernel's cumulative physical disk bytes
+attributed to the process that issued them.
+
+| Model field | Source |
+| --- | --- |
+| Name | `proc_name` (full executable name), fallback `p_comm` (16 bytes) |
+| PID, uid, start time | `kinfo_proc` (`p_pid`, `e_ucred.cr_uid`, `p_starttime`) |
+| User | `getpwuid_r` on the uid, fallback `uid N` |
+| Read / write rate | Non-negative delta of the disk byte counters divided by the interval between the two observations (nominally 2 s) |
+| Written total | Cumulative `ri_diskio_byteswritten` |
+| Hint | `WorkloadHint.token(forProcessName:)`: name match against `exo`, `openclaw`, `ollama`, `llama`, `mlx`, `python`, `jupyter`, `lmstudio`, `vllm`, `torch`, `whisper`, `comfy`, `diffusion`, `koboldcpp`, `mistral` |
+
+Identity is `pid-starttime`, so a recycled PID never inherits another process's
+counters. A first observation has no rate; only processes with a non-zero delta
+appear in the list, capped at 40 entries ordered by combined rate.
+
+Coverage is reported, not hidden: XNU's `proc_pid_rusage` applies
+`CHECK_SAME_USER` (`bsd/kern/proc_info.c`), so without root LumeFS can read the
+counters of the current user's processes only. Other users' processes are
+counted as “not permitted” (`EPERM`). The panel shows readable / total /
+denied counts. Page-cache hits and network file-system traffic are not part of
+these counters; the hint is a name heuristic, never a classification of what the
+process does. Arguments, environment, open files and paths are never read.
+
 ## NFS users (server side)
 
 `nfsstat -u -n net -f JSON` reads the kernel's active-user list through

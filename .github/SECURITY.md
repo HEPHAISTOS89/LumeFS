@@ -29,6 +29,10 @@ project remains a hackathon prototype.
   `status`, which Apple's `nfsd` source treats as an unprivileged, read-only
   command; `start`, `stop`, `enable`, `disable`, `update` and `checkexports` are
   rejected.
+- Per-process attribution reads only `kinfo_proc` identity fields,
+  `proc_name` and `proc_pid_rusage` disk counters; it never reads arguments,
+  environment, open files or paths, and it does not request the privileges
+  needed to inspect other users' processes.
 - NFS client addresses from `nfsstat -u` are collected numerically (no DNS
   lookup), masked to their network prefix in the UI by default, and always
   masked in alert text.

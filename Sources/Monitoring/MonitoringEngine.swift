@@ -3,6 +3,7 @@ import Foundation
 actor MonitoringEngine {
     private let mountCollector = MountCollector()
     private let blockIOCollector = BlockIOCollector()
+    private let processIOCollector = ProcessIOCollector()
     private let commandRunner = SystemCommandRunner()
     private let alertEngine = AlertRuleEngine()
 
@@ -11,6 +12,7 @@ actor MonitoringEngine {
     private var cachedNFSMounts: [NFSMountInfo] = []
     private var cachedNFSUsers = NFSUserActivitySnapshot.unavailable
     private var cachedNFSUserRates: [NFSUserActivityRate] = []
+    private var cachedProcessIO = ProcessIOSnapshot.unavailable
     private var cachedQuotas: [QuotaSnapshot] = []
     private var previousNFS: NFSClientMetrics?
     private var refreshCount = 0
@@ -20,6 +22,12 @@ actor MonitoringEngine {
         refreshCount += 1
 
         async let samples = blockIOCollector.collect(at: now)
+
+        // Every other cycle: one sysctl plus one proc_pid_rusage per readable process.
+        // Two-second deltas are smoother than one-second ones for bursty writers.
+        if refreshCount == 1 || refreshCount.isMultiple(of: 2) {
+            cachedProcessIO = await processIOCollector.collect(at: now)
+        }
 
         if cachedVolumes.isEmpty || refreshCount.isMultiple(of: 10) {
             let volumes = mountCollector.collect(at: now)
@@ -78,6 +86,7 @@ actor MonitoringEngine {
             nfsMounts: cachedNFSMounts,
             nfsUsers: cachedNFSUsers,
             nfsUserRates: cachedNFSUserRates,
+            processIO: cachedProcessIO,
             quotas: cachedQuotas,
             alerts: alerts,
             capturedAt: now

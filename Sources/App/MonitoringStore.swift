@@ -62,6 +62,7 @@ final class MonitoringStore {
     private(set) var nfsMounts: [NFSMountInfo] = []
     private(set) var nfsUsers = NFSUserActivitySnapshot.unavailable
     private(set) var nfsUserRates: [NFSUserActivityRate] = []
+    private(set) var processIO = ProcessIOSnapshot.unavailable
     private(set) var pNFSReplayMetrics: NFSClientMetrics?
     private(set) var pNFSReplayError: String?
     private(set) var quotas: [QuotaSnapshot] = []
@@ -289,6 +290,7 @@ final class MonitoringStore {
         nfsMounts = snapshot.nfsMounts
         nfsUsers = snapshot.nfsUsers
         nfsUserRates = snapshot.nfsUserRates
+        processIO = snapshot.processIO
         quotas = snapshot.quotas
         alerts = snapshot.alerts
         lastUpdated = snapshot.capturedAt

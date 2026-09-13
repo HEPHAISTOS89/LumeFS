@@ -16,6 +16,7 @@ MonitoringEngine (actor)
     ├── MountCollector ───────────── getfsstat(2)
     ├── APFSMetadataCollector ────── diskutil info -plist
     ├── BlockIOCollector (actor) ─── IOKit IOMedia statistics
+    ├── ProcessIOCollector (actor) ─ sysctl KERN_PROC_ALL + proc_pid_rusage
     ├── NFSCollector ─────────────── nfsstat -f JSON -c
     ├── NFSMountCollector ────────── nfsstat -m -f JSON <mount point>
     ├── NFSActiveUserCollector ───── nfsstat -u -n net -f JSON, nfsd status
@@ -40,7 +41,7 @@ navigation sections:
 - Overview
 - Volumes, including an in-place volume detail pane
 - Performance
-- Attribution (which NFS users drive activity on this server)
+- Attribution (which local processes and NFS users drive activity)
 - Activity
 - Alerts, including an in-place evidence pane
 
@@ -106,6 +107,18 @@ rates by subtracting the prior sample and dividing by elapsed time.
 - A counter decrease reports zero for that rate.
 - Samples are whole-device observations and are not attributed to a mount,
   process, path, model, or dataset.
+
+### ProcessIOCollector
+
+Every second cycle the actor lists processes through `sysctl(KERN_PROC_ALL)`
+and calls libproc's `proc_pid_rusage(RUSAGE_INFO_V4)` for each PID. libproc is
+not in Swift's Darwin module map, so `proc_pid_rusage` and `proc_name` are
+resolved with `dlsym(RTLD_DEFAULT)` and called through `@convention(c)` function
+pointers; no bridging header is added. Counters are keyed by `pid-starttime`,
+rates are non-negative deltas between consecutive observations, and the
+snapshot carries readable / denied / total counts because the kernel refuses
+other users' processes (`EPERM`) when LumeFS is not root. Only the executable
+name and PID are read.
 
 ### NFSCollector
 

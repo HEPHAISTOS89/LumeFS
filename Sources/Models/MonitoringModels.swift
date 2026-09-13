@@ -424,6 +424,77 @@ struct NFSUserAlertThresholds: Equatable, Sendable {
     }
 }
 
+/// Disk I/O attributed to one local process by the kernel (`proc_pid_rusage`,
+/// `ri_diskio_bytesread` / `ri_diskio_byteswritten`). Name and PID only: no
+/// arguments, paths or file contents are collected.
+struct ProcessIOSample: Identifiable, Codable, Hashable, Sendable {
+    let id: String
+    let pid: Int32
+    let name: String
+    let uid: UInt32
+    let userName: String
+    let readBytesPerSecond: Double
+    let writeBytesPerSecond: Double
+    let cumulativeReadBytes: UInt64
+    let cumulativeWriteBytes: UInt64
+    let intervalSeconds: Double
+    let workloadHint: String?
+    let timestamp: Date
+    let provenance: DataProvenance
+
+    var totalBytesPerSecond: Double {
+        readBytesPerSecond + writeBytesPerSecond
+    }
+}
+
+struct ProcessIOSnapshot: Codable, Hashable, Sendable {
+    /// Processes with a measurable rate in the last interval, highest total first.
+    let samples: [ProcessIOSample]
+    let totalProcessCount: Int
+    /// Processes whose counters the kernel let LumeFS read (same uid, or root).
+    let readableProcessCount: Int
+    /// Processes the kernel refused (`EPERM`): other users' processes without root.
+    let deniedProcessCount: Int
+    let capturedAt: Date
+    let provenance: DataProvenance
+    let message: String?
+
+    static let unavailable = ProcessIOSnapshot(
+        samples: [],
+        totalProcessCount: 0,
+        readableProcessCount: 0,
+        deniedProcessCount: 0,
+        capturedAt: .distantPast,
+        provenance: .unavailable,
+        message: "Per-process disk I/O has not been collected."
+    )
+}
+
+/// Name-based hint that a process is probably an AI runtime. It is a heuristic on
+/// the executable name only and is labeled as such wherever it is shown.
+enum WorkloadHint {
+    static let aiProcessTokens: [String] = [
+        "exo", "openclaw", "ollama", "llama", "mlx", "python", "jupyter", "lmstudio",
+        "vllm", "torch", "whisper", "comfy", "diffusion", "koboldcpp", "mistral"
+    ]
+
+    static func token(forProcessName processName: String) -> String? {
+        let words = processName.lowercased()
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+        for token in aiProcessTokens {
+            for word in words {
+                if word == token { return token }
+                guard word.hasPrefix(token) else { continue }
+                let rest = word.dropFirst(token.count)
+                if rest.allSatisfy(\.isNumber) { return token }
+                if token.count >= 5 { return token }
+            }
+        }
+        return nil
+    }
+}
+
 struct QuotaSnapshot: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let subject: String
@@ -538,6 +609,7 @@ struct SystemSnapshot: Sendable {
     let nfsMounts: [NFSMountInfo]
     let nfsUsers: NFSUserActivitySnapshot
     let nfsUserRates: [NFSUserActivityRate]
+    let processIO: ProcessIOSnapshot
     let quotas: [QuotaSnapshot]
     let alerts: [MonitoringAlert]
     let capturedAt: Date
@@ -549,6 +621,7 @@ struct SystemSnapshot: Sendable {
         nfsMounts: [NFSMountInfo] = [],
         nfsUsers: NFSUserActivitySnapshot = .unavailable,
         nfsUserRates: [NFSUserActivityRate] = [],
+        processIO: ProcessIOSnapshot = .unavailable,
         quotas: [QuotaSnapshot],
         alerts: [MonitoringAlert],
         capturedAt: Date
@@ -559,6 +632,7 @@ struct SystemSnapshot: Sendable {
         self.nfsMounts = nfsMounts
         self.nfsUsers = nfsUsers
         self.nfsUserRates = nfsUserRates
+        self.processIO = processIO
         self.quotas = quotas
         self.alerts = alerts
         self.capturedAt = capturedAt

@@ -46,6 +46,11 @@ alert that used it.
 - Per-mount NFS information (server, export, version, transport, mount
   parameters, kernel `dead` / `not responding` / `recovery` flags) from
   `nfsstat -m`, with alerts driven only by those kernel flags.
+- Local process attribution: per-process disk read/write rates from
+  `proc_pid_rusage` (name, PID, user, 2 s deltas), coverage counts for
+  processes the kernel refuses without administrator rights, and a name-based
+  “AI runtime?” hint (exo, openclaw, ollama, python, …) that is labeled as a
+  heuristic.
 - Per-user NFS attribution on a Mac that runs `nfsd` (`nfsstat -u`): user,
   export, masked client address, request and byte deltas, idle time, plus
   deterministic write-burst and request-burst alerts with documented, adjustable
@@ -92,12 +97,13 @@ LumeFS uses no third-party runtime dependencies.
 | Mounted volumes and capacity | `getfsstat(2)` | Visible APFS/NFS mounts |
 | APFS metadata | `/usr/sbin/diskutil info -plist` | One discovered APFS mount at a time |
 | Block I/O | IOKit `IOMedia` statistics | Whole devices, not individual processes or files |
+| Process disk I/O | `sysctl(KERN_PROC_ALL)` + libproc `proc_pid_rusage` | Current user's processes (kernel `CHECK_SAME_USER`); other users counted as not permitted |
 | NFS client metrics | `/usr/bin/nfsstat -f JSON -c` | System-wide cumulative client counters |
 | NFS mount information | `/usr/bin/nfsstat -m -f JSON <mount point>` | One discovered NFS mount at a time: server, export, version, transport, parameters, kernel status flags |
 | NFS users (server side) | `/usr/bin/nfsstat -u -n net -f JSON`, `/sbin/nfsd status` | Per user and client address, per export, on a Mac that runs `nfsd`; requests, bytes, idle; deltas over 3 s |
 | Quota status | `/usr/bin/quota -uv` | Current user; recognized local/remote rows plus raw fallback |
 
-The refresh loop runs once per second. Block I/O is sampled each refresh; mounts,
+The refresh loop runs once per second. Block I/O is sampled each refresh; process disk I/O every 2 cycles; mounts,
 APFS metadata and NFS mount information are refreshed every 10 cycles, NFS client counters every 3 cycles, and quota
 every 30 cycles after their initial collection.
 

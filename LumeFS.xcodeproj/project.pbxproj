@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */; };
+		6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */; };
 		FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */; };
 		9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0E498AB63CAEC2645E1245 /* AttributionView.swift */; };
 		71D915B014BCD80742E1D418 /* NFSActiveUserCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */; };
@@ -63,6 +65,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollectorTests.swift; sourceTree = "<group>"; };
+		1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollector.swift; sourceTree = "<group>"; };
 		B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollectorTests.swift; sourceTree = "<group>"; };
 		4F0E498AB63CAEC2645E1245 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
 		703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollector.swift; sourceTree = "<group>"; };
@@ -125,6 +129,7 @@
 				B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */,
 				D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */,
 				EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */,
+				0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */,
 				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
 				52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */,
 				52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */,
@@ -143,6 +148,7 @@
 				703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */,
 				875DCB89A09565F6E509D9C9 /* NFSCollector.swift */,
 				5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */,
+				1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */,
 				847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */,
 				0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */,
 			);
@@ -357,6 +363,7 @@
 				FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */,
 				67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */,
 				77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */,
+				494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */,
 				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
 				3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */,
 				617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */,
@@ -388,6 +395,7 @@
 				B6EFA120131B4FDBBBCAE03A /* NFSMountCollector.swift in Sources */,
 				74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */,
 				8B0429361256656DDF6AD54E /* PerformanceView.swift in Sources */,
+				6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */,
 				72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */,
 				49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */,
 				2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */,

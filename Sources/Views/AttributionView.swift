@@ -1,7 +1,8 @@
 import SwiftUI
 
-/// Who is generating storage activity: NFS users seen by the local nfsd.
-/// Every figure here is attributed by the kernel, never inferred by LumeFS.
+/// Who is generating storage activity: local processes (libproc) and NFS users
+/// seen by the local nfsd. Every figure here is attributed by the kernel, never
+/// inferred by LumeFS.
 struct AttributionView: View {
     let store: MonitoringStore
     @AppStorage("showFullNFSClientAddresses") private var showFullAddresses = false
@@ -11,12 +12,110 @@ struct AttributionView: View {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 ScreenHeader(
                     title: "Attribution",
-                    subtitle: "Which users drive storage activity · kernel-reported, not inferred"
+                    subtitle: "Which processes and users drive storage activity · kernel-reported, not inferred"
                 )
 
+                processSection
+                Divider()
                 nfsUsersSection
             }
             .padding(LayoutMetrics.pageInset)
+        }
+    }
+
+    // MARK: - Local processes
+
+    private var processSection: some View {
+        VStack(alignment: .leading, spacing: LayoutMetrics.rowSpacing) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Local processes").font(.headline)
+                    Text("proc_pid_rusage disk bytes · deltas over the last 2 s · name and PID only")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                ProvenanceBadge(provenance: store.processIO.provenance)
+            }
+
+            if store.processIO.provenance != .live {
+                unavailablePanel(
+                    symbol: "cpu",
+                    title: "Per-process disk I/O unavailable",
+                    message: store.processIO.message ?? "Process counters could not be read."
+                )
+            } else {
+                processCoverage
+
+                if store.processIO.samples.isEmpty {
+                    unavailablePanel(
+                        symbol: "cpu",
+                        title: "No process disk I/O in the last interval",
+                        message: "None of the \(store.processIO.readableProcessCount) readable processes read or wrote to disk since the previous sample."
+                    )
+                } else {
+                    InsetPanel {
+                        processGrid
+                            .padding(LayoutMetrics.contentSpacing)
+                    }
+                }
+
+                Text("Counters are physical disk bytes attributed by the kernel to the issuing process; page-cache hits and network file systems are not included. “AI runtime?” is a name match on the executable, not a classification of what the process does.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var processCoverage: some View {
+        HStack(spacing: LayoutMetrics.contentSpacing) {
+            ProductLabel("\(store.processIO.readableProcessCount) of \(store.processIO.totalProcessCount) processes readable", systemImage: "eye")
+            if store.processIO.deniedProcessCount > 0 {
+                ProductLabel("\(store.processIO.deniedProcessCount) other users' processes not permitted without administrator rights", systemImage: "lock")
+                    .help("macOS only lets a process read I/O counters of processes with the same user id. LumeFS does not request administrator privileges.")
+            }
+            Spacer()
+        }
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var processGrid: some View {
+        Grid(alignment: .leading, horizontalSpacing: 20, verticalSpacing: 8) {
+            GridRow {
+                Text("Process")
+                Text("PID").gridColumnAlignment(.trailing)
+                Text("User")
+                Text("Read").gridColumnAlignment(.trailing)
+                Text("Write").gridColumnAlignment(.trailing)
+                Text("Written total").gridColumnAlignment(.trailing)
+                Text("Hint")
+            }
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+
+            Divider().gridCellUnsizedAxes(.horizontal)
+
+            ForEach(store.processIO.samples) { sample in
+                GridRow {
+                    Text(sample.name).fontWeight(.medium).lineLimit(1).truncationMode(.middle)
+                    Text(String(sample.pid)).monospacedDigit()
+                    Text(sample.userName)
+                    Text(MetricFormatter.throughput(sample.readBytesPerSecond)).monospacedDigit()
+                    Text(MetricFormatter.throughput(sample.writeBytesPerSecond)).monospacedDigit()
+                    Text(MetricFormatter.bytes(Int64(clamping: sample.cumulativeWriteBytes))).monospacedDigit()
+                    if let hint = sample.workloadHint {
+                        ProductLabel("AI runtime? (\(hint))", systemImage: "sparkles")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("—").foregroundStyle(.tertiary)
+                    }
+                }
+                .font(.callout)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("\(sample.name), PID \(sample.pid), \(sample.userName), reading \(MetricFormatter.throughput(sample.readBytesPerSecond)), writing \(MetricFormatter.throughput(sample.writeBytesPerSecond))")
+            }
         }
     }
 

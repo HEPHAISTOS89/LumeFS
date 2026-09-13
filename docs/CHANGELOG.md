@@ -17,6 +17,9 @@ All notable project changes will be documented here.
   an explicit unavailable state on a pure client.
 - Alert rules `nfs.user.write_burst` and `nfs.user.request_burst` (Warning) with
   Settings-adjustable thresholds (defaults 100 MB/s and 1,000 requests/s).
+- Local process disk I/O attribution (`sysctl` + `proc_pid_rusage`): name, PID,
+  user, 2 s read/write deltas, cumulative bytes, readable / denied coverage
+  counts, and a name-based AI-runtime hint.
 - `SMARTAssessment` classification: `Not Supported`, `Unknown` and empty SMART
   strings are absence of data, only explicit failure wording is Critical, and
   unknown wording is a Notice.
