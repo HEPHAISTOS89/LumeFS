@@ -230,6 +230,28 @@ file systems” message; it is not treated as a structured per-volume metric.
 Quota output may include usernames, mount names, paths, or server identifiers.
 Review it before publishing screenshots.
 
+### Scope and the administrator path
+
+`quota -uv` answers for the current user only, and LumeFS never requests
+administrator rights, so all-user quota administration is explicitly out of
+the automatic path. Instead:
+
+- The volume detail states the scope, explains what applies to that file
+  system, and offers **Copy administrator command**, which places
+  `sudo repquota -a -v` on the clipboard for the operator to run in Terminal.
+  LumeFS does not execute it and does not prompt for a password. `repquota`
+  reads quota files and changes nothing.
+- APFS enforces no per-user quotas; the only limits are the APFS volume quota
+  and reserve. On an APFS-only Mac `repquota` lists no users, and the guidance
+  says so rather than implying a report exists.
+- For NFS mounts, per-user quotas are enforced by the server; the guidance
+  names the server from the mount source and points there. The client can only
+  ask about the current user (rquotad).
+- Every export carries a `quotaCoverage` record (`scope = current-user`, the
+  subject, the administrator command and the note above), and the CSV has
+  `quota,coverage,scope` and `quota,coverage,administrator_command` rows, so a
+  report cannot be mistaken for all-user coverage.
+
 ## Alerts
 
 | Rule ID | Trigger | Severity |

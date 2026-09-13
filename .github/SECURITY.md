@@ -44,7 +44,10 @@ project remains a hackathon prototype.
   environment.
 - The automatic monitoring path does not request administrator privileges or
   modify mounts/files. The separately triggered benchmark writes one temporary
-  file as described below.
+  file as described below. The “Copy administrator command” and “Copy verify
+  command” buttons only write `sudo repquota -a -v` or
+  `diskutil verifyVolume "<mount point>"` to the clipboard; nothing is
+  executed and no authorization dialog is shown.
 - Manual benchmarking creates a fresh UUID-named workspace directly below the
   system temporary directory, writes only `sample.bin` (`O_EXCL`, mode 0600),
   enforces a 1,024 MiB internal ceiling and two-times-free-space check,

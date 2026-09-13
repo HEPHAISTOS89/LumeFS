@@ -41,6 +41,10 @@ All notable project changes will be documented here.
   `diskutil verifyVolume "<mount point>"` on the clipboard; LumeFS never runs
   `fsck`. Exports gain `file_nodes_used`, `apfs_container`,
   `apfs_container_free_bytes` and `apfs_encryption` volume rows.
+- Quota administrator path made explicit: the volume detail states the
+  current-user scope, gives APFS / NFS / other guidance, and copies
+  `sudo repquota -a -v` to the clipboard (never executed, no password prompt);
+  exports carry a `quotaCoverage` record and CSV `quota,coverage` rows.
 - Opt-in macOS notifications for critical alerts (Settings › Notifications):
   one notification per refresh, 10-minute per-alert cooldown, alert title only,
   no permission request until enabled.

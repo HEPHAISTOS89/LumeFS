@@ -212,7 +212,13 @@ defines the evidence required before release.
   does not replace capacity.
 - Recognized quota rows are mapped by their filesystem string; unrecognized
   output remains one raw, all-filesystems message.
-- Quota scope is the current user, not administration of all users. Soft limits are treated conservatively; grace periods and inode limits are not evaluated. A capacity estimate is not a write-permission guarantee.
+- Quota scope is the current user, not administration of all users; LumeFS
+  never requests administrator rights. The volume detail says so, explains
+  what applies to APFS (no per-user quotas), NFS (enforced on the server) and
+  other file systems, and copies `sudo repquota -a -v` for you to run in
+  Terminal. Exports carry the same `quotaCoverage` statement. Soft limits are
+  treated conservatively; grace periods and inode limits are not evaluated. A
+  capacity estimate is not a write-permission guarantee.
 - Settings appearance (System/Light/Dark), optional numeric animations, and thresholds are persisted and read on refresh; they are not versioned
   with historical alerts (a history entry does not record which threshold was
   in force when it was raised).
@@ -241,10 +247,12 @@ Ordered by expected value for administrators of local AI storage. Items marked
    implement pNFS (`man 5 nfs`). LumeFS parses NFSv4.1 layout counters and ships
    a visibly labeled replay. A real metadata/data-server validation needs a
    different client or a sponsor-provided environment.
-2. **Per-user quota administration**: `quota` reports only the current user
-   without privileges. An explicit, permission-aware administrator path
-   (`repquota -a` on volumes with quotas enabled, or server-side reports for NFS)
-   is the next step; LumeFS will not request root silently.
+2. **Per-user quota administration**: the permission boundary is now explicit
+   (current user only, copyable `sudo repquota -a -v`, per-file-system
+   guidance, `quotaCoverage` in exports). Running the report from the app
+   would require an authorization dialog and parsing `repquota` output; that
+   step, and server-side reports for NFS, remain future work. LumeFS will not
+   request root silently.
 3. **Sustained multi-run benchmark** with percentiles, device isolation and an
    explicit wall-clock budget, so GB/s claims can be defended beyond one bounded
    run.
