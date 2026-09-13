@@ -358,6 +358,39 @@ fits           = available bytes >= required bytes
 The badge is `ESTIMATE`. The calculation does not predict checkpoint growth,
 temporary training files, other writers, quotas, or future availability.
 
+## Placement plan and copy
+
+The Placement view applies the same margin to real data. A plan is a dry run:
+
+| Field | Definition |
+| --- | --- |
+| Contents | Regular files, directories and symbolic links counted by a `FileManager` walk that never follows links; entries whose attributes cannot be read are counted as unreadable and would be skipped. |
+| Data | Sum of logical file sizes (`fileSizeKey`), plus the largest single file. Sparse files, compression and clones make allocated blocks differ from this figure. |
+| Required | `data bytes + 20%`, the same margin as the estimate above. |
+| Available | `volumeAvailableCapacityKey` of the destination root at planning time: statfs-style free space, purgeable space not counted. |
+| Fits | `available >= required`. Copy is disabled otherwise. |
+| Same volume | Source and destination share a volume URL; the copy frees no space there and becomes an APFS clone. |
+
+The badge is `ESTIMATE`. The plan is rejected, and nothing journaled, when the
+destination is inside the source or vice versa, when anything already exists at
+`<root>/<source name>`, when the root is missing or read-only, or when the
+space check fails.
+
+A confirmed copy reports:
+
+| Field | Definition |
+| --- | --- |
+| Progress | Copied bytes / planned bytes (files when the byte total is zero); bytes advance inside a file from the `copyfile(3)` status callback, throttled to 200 ms, and at each file boundary. |
+| Copied | Files whose `copyfile` call returned success. |
+| Size-verified | Files whose destination `fileSizeKey` equals the source's after the copy. A mismatch stops the run. |
+| Duration | Wall clock from start to the reported outcome. |
+| Incomplete | The relative path of the file in flight when a cancel or error stopped the run. It is left in place. |
+| Outcome | `completed`, `cancelled` or `failed`. On every outcome the original is retained and nothing at the destination is removed. |
+
+Verification is a size comparison, not a checksum. Directory attributes are
+not copied. The journal (`migration-journal.json`, 200 entries) records the
+plan and each outcome with full paths, counts and the detail shown in the UI.
+
 ## Controlled benchmark
 
 The UI offers 128 (default), 256, 512 and 1,024 MiB. The guard accepts

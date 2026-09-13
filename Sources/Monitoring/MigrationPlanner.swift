@@ -383,8 +383,9 @@ actor MigrationExecutor {
                 let values = try url.resourceValues(forKeys: Set(keys))
 
                 if values.isSymbolicLink == true {
-                    // `copyItem` copies the link itself, never its target.
-                    try fileManager.copyItem(at: url, to: target)
+                    // Recreate the link with its literal target; never follow it.
+                    let linkTarget = try fileManager.destinationOfSymbolicLink(atPath: url.path)
+                    try fileManager.createSymbolicLink(atPath: target.path, withDestinationPath: linkTarget)
                 } else if values.isDirectory == true {
                     try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
                 } else if values.isRegularFile == true {

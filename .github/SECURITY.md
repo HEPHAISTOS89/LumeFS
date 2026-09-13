@@ -53,6 +53,22 @@ project remains a hackathon prototype.
   enforces a 1,024 MiB internal ceiling and two-times-free-space check,
   flushes the write with `F_FULLFSYNC`, and removes the file and workspace on
   success, error and cancellation. The UI offers 128 (default) to 1,024 MiB.
+- Placement copies are the only writes outside LumeFS's own files and temporary
+  workspace. They happen only after the user chose both paths in open panels
+  and confirmed a dialog naming them. The copy is additive: it creates
+  `<destination root>/<source name>` with `withIntermediateDirectories: false`
+  and copies regular files with `copyfile(3)` using `COPYFILE_EXCL` (plus ACL,
+  stat, xattr, data, no-follow and clone flags), so nothing existing is ever
+  replaced or merged into. LumeFS never deletes, moves, renames or truncates
+  anything at the source or the destination, including after Cancel or an
+  error; a partial copy is reported and left for the user. No privilege is
+  requested; a destination the user cannot write to is rejected at planning.
+- The placement journal
+  (`~/Library/Application Support/LumeFS/migration-journal.json`, 200 entries,
+  atomic writes) stores the full source and destination paths, counts and
+  outcome of every plan and copy. Treat it like the alert history when sharing
+  a machine or a support bundle. An unreadable file is set aside as
+  `migration-journal.unreadable.json`.
 - Opt-in FSEvents monitoring reports aggregate operations under a root label;
   emitted activity records do not contain individual event paths or contents.
 - Alert history is written to

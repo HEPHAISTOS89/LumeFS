@@ -30,6 +30,8 @@ Opt-in/manual paths owned by MonitoringStore
     ├── FileActivityCollector ────── FSEvents, aggregated to root labels
     ├── DiskBenchmark ────────────── app-owned temporary file
     ├── WorkloadReadinessCalculator 20% capacity-margin estimate
+    ├── MigrationController ──────── MigrationPlanner dry run, MigrationExecutor copyfile(3) copy,
+    │                                MigrationJournal (200 entries, Application Support JSON)
     └── pNFS replay ──────────────── bundled JSON fixture
 ```
 
@@ -38,14 +40,16 @@ third-party runtime package in the current project.
 
 ## UI and state
 
-`LumeFSApp` creates one `MonitoringStore`. `AppShellView` exposes six
-navigation sections:
+`LumeFSApp` creates one `MonitoringStore`. `AppShellView` exposes seven
+navigation sections (⌘1–⌘7):
 
 - Overview
 - Volumes, including an in-place volume detail pane
 - Performance
 - Attribution (which local processes and NFS users drive activity)
 - Activity
+- Placement: source / destination pair, dry-run plan, confirmed additive copy
+  with progress and Cancel, result, and the local journal
 - Alerts, with an Active / History switch, an in-place evidence pane, a
   lifecycle pane and an Acknowledge action
 
@@ -212,6 +216,61 @@ the selection to bytes and adds a fixed 20% safety margin. “Ready” means the
 current volume's available bytes are at least that estimated requirement. It is
 not a prediction of model growth or future free space.
 
+### Placement plan and additive copy
+
+`MigrationController` (`@MainActor @Observable`, owned by the store as
+`placement`) holds one pair at a time. Choosing a source (folder or file, via
+`NSOpenPanel`) and a destination (a writable mounted volume from the current
+snapshot, or a folder) invalidates any previous plan and result.
+
+**Plan (dry run).** `MigrationPlanner.inventory(of:)` walks the source with
+`FileManager.enumerator` on a detached task; it counts regular files,
+directories, symbolic links (never followed) and unreadable entries, sums
+logical sizes and records the largest file, and checks `Task.checkCancellation()`
+every 256 entries so Cancel is honored. `MigrationPlanner.plan(...)` then
+derives the destination as `<root>/<source name>` on resolved paths and rejects,
+in this order: an empty source, a destination inside the source, a source inside
+the destination, an unmounted or missing root, an existing destination (LumeFS
+never merges or overwrites), a read-only volume or root, and insufficient space.
+Required space is logical bytes plus the same 20% margin as the readiness
+estimate; available space is `volumeAvailableCapacityKey` (statfs-style,
+purgeable space not counted). The resulting `MigrationPlan` is `ESTIMATE`
+provenance and creating it changes nothing on disk. Accepted plans are
+journaled as `planned`; rejected pairs are shown as an error and not journaled.
+
+**Confirm.** The Copy button is disabled unless the plan fits, and opens a
+`confirmationDialog` that names the file count, byte total, destination volume
+and both full paths and states that the original is never deleted or modified.
+Only its Copy action calls `startCopy()`.
+
+**Copy.** `MigrationExecutor` (an actor) creates the destination directory
+(`withIntermediateDirectories: false`, so a race with something appearing after
+planning fails instead of merging), then walks the source again. Directories
+are recreated with default attributes; symbolic links are recreated with their
+literal target (`destinationOfSymbolicLink` + `createSymbolicLink`, which fails
+rather than replaces an existing item); regular files go through `copyfile(3)` with
+`COPYFILE_ACL | COPYFILE_STAT | COPYFILE_XATTR | COPYFILE_DATA | COPYFILE_EXCL |
+COPYFILE_NOFOLLOW_SRC | COPYFILE_CLONE`, so ownership, mode, dates, extended
+attributes and ACLs are preserved, nothing existing is ever replaced, and a
+same-volume APFS copy becomes a clone. A `copyfile` status callback reports
+`COPYFILE_STATE_COPIED` (throttled to 200 ms) and returns `COPYFILE_QUIT` when
+the task is cancelled, so Cancel takes effect inside a large file, not after it.
+Every file is size-verified after the copy; a mismatch stops the run. The
+executor never removes, moves or modifies anything: on cancel or error the
+result names the incomplete file and the partial destination is left for the
+user. Outcomes are `completed`, `cancelled` or `failed`, each with
+`originalRetained == true`.
+
+**Journal.** `MigrationJournal` is a bounded (200) append-only list of
+`planned` / `started` / `completed` / `cancelled` / `failed` entries with full
+source and destination paths, counts and a detail string.
+`MigrationJournalPersistence` writes it as ISO-8601 JSON to
+`~/Library/Application Support/LumeFS/migration-journal.json` after every
+append; an unreadable file is set aside as `.unreadable.json`. Started and
+finished copies also post an Activity event. Tests are nil-persistence and run
+against a temporary tree, asserting after every outcome that the source is
+byte-for-byte unchanged.
+
 ### Controlled benchmark
 
 The Performance view runs a 128, 256, 512 or 1,024 MiB benchmark (default
@@ -328,7 +387,14 @@ potentially identifying. The same fields leave the Mac only when the user
 exports a snapshot to a location they choose; the alert-history file in
 Application Support stores alert titles, messages and evidence strings, which
 can name volumes, mounts, devices and NFS users. Notifications carry alert
-titles only.
+titles only. The placement journal in the same folder stores the full source
+and destination paths of every plan and copy.
+
+Placement is the only path that writes outside LumeFS's own files, and it is
+additive by construction: it creates a new directory tree under a destination
+the user chose and confirmed, uses exclusive-create flags, and never deletes,
+moves, renames or overwrites anything, at the source or the destination, on any
+outcome.
 
 The App Sandbox is disabled in `project.yml`; Hardened Runtime is enabled. Any
 distribution decision should review this boundary and the generated app's
@@ -355,3 +421,8 @@ Alert history persists across launches; a failed write surfaces as a message in
 the History pane and monitoring continues with the in-memory ledger. A failed
 export leaves the previous successful export location unchanged, records no
 Activity event, and is reported in a standard alert sheet on the main window.
+
+A placement copy that fails or is cancelled reports the outcome, the copied and
+verified counts and the incomplete file in the Placement view, journals it, and
+leaves both trees as they are. A journal write failure is shown under the
+journal list; the in-memory journal keeps accumulating for the session.

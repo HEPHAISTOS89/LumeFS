@@ -48,6 +48,16 @@ All notable project changes will be documented here.
 - Opt-in macOS notifications for critical alerts (Settings › Notifications):
   one notification per refresh, 10-minute per-alert cooldown, alert title only,
   no permission request until enabled.
+- Placement section (⌘7): choose a source folder or file and a writable volume
+  or folder, run a dry-run plan (inventory, containment / existence /
+  read-only checks, free space with the 20% margin, `ESTIMATE`), confirm once
+  in a dialog that names both paths, then copy with progress and Cancel.
+  Regular files use `copyfile(3)` with exclusive create, metadata
+  preservation and APFS clone; each file is size-verified. The original is
+  never deleted, moved or modified and nothing existing is overwritten, on
+  every outcome. Plans and outcomes are journaled in
+  `~/Library/Application Support/LumeFS/migration-journal.json` (200 entries)
+  and posted to the Activity feed.
 - Fixture tests for NFS mount parsing, SMART classification, IOKit
   deduplication, the extended command allowlist, alert-history reconciliation
   and persistence, the notification planner, and JSON/CSV export.

@@ -66,6 +66,14 @@ alert that used it.
   through `F_NOCACHE`, and cached read from the macOS buffer cache, with
   explicit `BENCHMARK` provenance and cleanup status.
 - A workload-placement estimate with a 20% capacity margin and conservative current-user quota headroom when structured live limits match the volume.
+- A Placement view (⌘7) that turns the estimate into an additive copy: choose
+  a source folder or file and a writable volume or folder, run a dry run
+  (inventory, destination checks, free space with the same 20% margin,
+  labeled `ESTIMATE`), confirm once in a dialog, then copy with progress and
+  Cancel. Files go through `copyfile(3)` (metadata preserved, exclusive
+  create, APFS clone when on the same volume) and are size-verified; the
+  original is never deleted, moved or modified, and existing data is never
+  overwritten. Every plan and outcome is journaled locally.
 - Opt-in FSEvents monitoring that reports aggregate operations under a selected
   root label without displaying event paths or reading file contents.
 - A bundled pNFS JSON replay, visibly labeled `REPLAY`, for deterministic parser
@@ -82,7 +90,7 @@ alert that used it.
   same alert at most once per 10 minutes, title only, nothing requested from
   macOS until you turn it on.
 - Native SwiftUI views for Overview, Volumes, I/O Performance, Attribution,
-  Activity, and Alerts, plus a Settings window.
+  Activity, Placement, and Alerts, plus a Settings window.
 
 See [Metrics](docs/METRICS.md) for exact definitions and caveats.
 
@@ -186,6 +194,11 @@ its cleanup step afterward.
   appear in the UI, in the alert-history file under Application Support, and in
   exports you save. Do not publish screenshots or exports without reviewing
   them. Notifications carry alert titles only.
+- The Placement journal (`migration-journal.json`, same folder) records the
+  full source and destination paths of every plan and copy, 200 entries at
+  most. Placement itself only creates files: it never deletes, moves,
+  overwrites or merges, including after a cancel or an error, and it copies
+  only after you confirm a dialog that names both paths.
 - The app is currently built with the App Sandbox disabled because it reads
   system storage interfaces. Hardened Runtime is enabled.
 - System commands are launched with `Process.executableURL` and argument arrays,
@@ -232,6 +245,13 @@ defines the evidence required before release.
   statistic.
 - FSEvents monitoring is opt-in and aggregate, but selected root labels can still
   disclose folder names in the Activity view.
+- Placement copies, it does not migrate: freeing the source is a decision you
+  take yourself after checking the copy. The dry run counts logical bytes, so
+  the destination may allocate more or (with compression or clones) less;
+  purgeable space is not counted as free. Verification is a per-file size
+  comparison, not a checksum. Directories are recreated with default
+  attributes; a cancel leaves the file in flight incomplete and the result
+  names it. A same-volume copy frees nothing and becomes an APFS clone.
 - The current test suite covers selected collectors, command shapes, benchmark
   guardrails/cleanup, FSEvents aggregation/redaction, alert thresholds,
   readiness calculations, formatting, structured quota rows, and NFS parsing.
@@ -266,7 +286,11 @@ Ordered by expected value for administrators of local AI storage. Items marked
    read-only.
 6. **Time-to-full estimate** from the retained I/O and capacity history, labeled
    `ESTIMATE`.
-7. **Comparative evaluation** of incident-diagnosis time against Activity Monitor
+7. **Placement follow-through**: checksum verification of copies, an explicit
+   opt-in “remove original after verified copy” step behind its own
+   confirmation, and directory attribute preservation. Today Placement copies
+   and journals only; it will never delete on its own.
+8. **Comparative evaluation** of incident-diagnosis time against Activity Monitor
    plus command-line tools, with the same tasks and operators, before claiming
    any productivity gain.
 
