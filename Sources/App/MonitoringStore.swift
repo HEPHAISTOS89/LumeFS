@@ -7,6 +7,7 @@ enum AppSection: String, CaseIterable, Identifiable {
     case performance = "Performance"
     case attribution = "Attribution"
     case activity = "Activity"
+    case placement = "Placement"
     case alerts = "Alerts"
 
     var id: String { rawValue }
@@ -19,6 +20,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .performance: "Lucide-chart-no-axes-combined"
         case .attribution: nil
         case .activity: "Lucide-clock-arrow-left"
+        case .placement: nil
         case .alerts: "Lucide-bell"
         }
     }
@@ -30,6 +32,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .performance: "chart.xyaxis.line"
         case .attribution: "person.2"
         case .activity: "clock.arrow.circlepath"
+        case .placement: "arrow.right.doc.on.clipboard"
         case .alerts: "bell.badge"
         }
     }
@@ -100,15 +103,19 @@ final class MonitoringStore {
     private let alertHistoryPersistence: AlertHistoryPersistence?
     /// Nil in tests and in any context without an app bundle: no notification is ever posted.
     let criticalAlertNotifier: CriticalAlertNotifier?
+    /// Placement plans and confirmed copies; its journal is in memory unless a persistence is given.
+    let placement: MigrationController
 
     /// - Parameters:
     ///   - alertHistoryPersistence: where the alert ledger is read at start and
     ///     written on lifecycle changes. Nil keeps the history in memory only.
     ///   - criticalAlertNotifier: opt-in notification bridge; nil disables delivery.
+    ///   - migrationJournalPersistence: where placement plans and copies are journaled.
     init(
         collectSnapshot: (@Sendable () async -> SystemSnapshot)? = nil,
         alertHistoryPersistence: AlertHistoryPersistence? = nil,
-        criticalAlertNotifier: CriticalAlertNotifier? = nil
+        criticalAlertNotifier: CriticalAlertNotifier? = nil,
+        migrationJournalPersistence: MigrationJournalPersistence? = nil
     ) {
         if let collectSnapshot {
             self.collectSnapshot = collectSnapshot
@@ -118,15 +125,20 @@ final class MonitoringStore {
         }
         self.alertHistoryPersistence = alertHistoryPersistence
         self.criticalAlertNotifier = criticalAlertNotifier
+        self.placement = MigrationController(persistence: migrationJournalPersistence)
         self.ledger = alertHistoryPersistence?.load() ?? AlertHistoryLedger()
         self.alertHistory = ledger.entries
+        placement.onActivity = { [weak self] displayPath, description, date in
+            self?.appendActivity(displayPath: displayPath, description: description, provenance: .live, at: date)
+        }
     }
 
-    /// Production configuration: ledger in Application Support, notifications available.
+    /// Production configuration: ledger and journal in Application Support, notifications available.
     static func forApplication() -> MonitoringStore {
         MonitoringStore(
             alertHistoryPersistence: .applicationSupport(),
-            criticalAlertNotifier: CriticalAlertNotifier()
+            criticalAlertNotifier: CriticalAlertNotifier(),
+            migrationJournalPersistence: .applicationSupport()
         )
     }
 

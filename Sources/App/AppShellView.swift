@@ -118,6 +118,8 @@ struct AppShellView: View {
             AttributionView(store: store)
         case .activity:
             ActivityView(store: store)
+        case .placement:
+            PlacementView(store: store)
         case .alerts:
             AlertsView(store: store)
         }
