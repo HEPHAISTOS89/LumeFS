@@ -45,28 +45,44 @@ struct AlertRuleEngine: Sendable {
         _ volumes: [VolumeSnapshot],
         thresholds: CapacityThresholds
     ) -> [MonitoringAlert] {
-        volumes.flatMap { volume -> [MonitoringAlert] in
-            var alerts: [MonitoringAlert] = []
-            if let smart = smartAlert(for: volume) {
-                alerts.append(smart)
-            }
+        var alerts = volumes.compactMap(smartAlert)
 
-            let capacitySeverity = volume.capacitySeverity(thresholds: thresholds)
-            if capacitySeverity == .critical {
-                alerts.append(capacityAlert(
-                    for: volume,
-                    severity: .critical,
-                    threshold: MetricFormatter.percentage(thresholds.criticalFreeFraction)
-                ))
-            } else if capacitySeverity == .warning {
-                alerts.append(capacityAlert(
-                    for: volume,
-                    severity: .warning,
-                    threshold: MetricFormatter.percentage(thresholds.warningFreeFraction)
-                ))
+        // macOS normally mounts a protected System volume and its writable Data
+        // partner from the same APFS container. They share capacity, so reporting
+        // both as separate incidents makes one full disk look like two failures.
+        let capacityGroups = Dictionary(grouping: volumes) { volume in
+            if volume.fileSystem == .apfs, let container = volume.apfs?.containerReference {
+                return "apfs-container:\(container)"
             }
-            return alerts
+            return "volume:\(volume.id)"
         }
+
+        for group in capacityGroups.values {
+            guard let representative = group.sorted(by: capacityRepresentativeOrder).first else { continue }
+            let severity = group.map { $0.capacitySeverity(thresholds: thresholds) }.max() ?? .healthy
+            let threshold: String
+            switch severity {
+            case .critical:
+                threshold = MetricFormatter.percentage(thresholds.criticalFreeFraction)
+            case .warning:
+                threshold = MetricFormatter.percentage(thresholds.warningFreeFraction)
+            case .healthy, .notice:
+                continue
+            }
+            alerts.append(capacityAlert(
+                for: representative,
+                affectedVolumes: group,
+                severity: severity,
+                threshold: threshold
+            ))
+        }
+        return alerts
+    }
+
+    private func capacityRepresentativeOrder(_ lhs: VolumeSnapshot, _ rhs: VolumeSnapshot) -> Bool {
+        if lhs.availableFraction != rhs.availableFraction { return lhs.availableFraction < rhs.availableFraction }
+        if lhs.isReadOnly != rhs.isReadOnly { return !lhs.isReadOnly }
+        return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
     }
 
     /// Absence of SMART data ("Not Supported", empty) is not a fault. Only explicit
@@ -107,16 +123,30 @@ struct AlertRuleEngine: Sendable {
 
     private func capacityAlert(
         for volume: VolumeSnapshot,
+        affectedVolumes: [VolumeSnapshot],
         severity: HealthSeverity,
         threshold: String
     ) -> MonitoringAlert {
-        MonitoringAlert(
-            id: "capacity-\(volume.id)",
+        let container = volume.apfs?.containerReference
+        let sharedContainer = affectedVolumes.count > 1 ? container : nil
+        let alertID = sharedContainer.map { "capacity-container-\($0)" } ?? "capacity-\(volume.id)"
+        let message: String
+        let evidence: String
+        if let sharedContainer {
+            let names = affectedVolumes.map(\.name).sorted().joined(separator: ", ")
+            message = "APFS container \(sharedContainer) has \(MetricFormatter.bytes(volume.availableBytes)) available across \(affectedVolumes.count) mounted volumes."
+            evidence = "\(MetricFormatter.percentage(volume.availableFraction)) free; threshold: \(threshold); affects \(names)"
+        } else {
+            message = "\(volume.name) has \(MetricFormatter.bytes(volume.availableBytes)) available."
+            evidence = "\(MetricFormatter.percentage(volume.availableFraction)) free; threshold: \(threshold)"
+        }
+        return MonitoringAlert(
+            id: alertID,
             ruleID: "volume.capacity.\(severity.label.lowercased())",
             severity: severity,
             title: severity == .critical ? "Capacity is critically low" : "Capacity is running low",
-            message: "\(volume.name) has \(MetricFormatter.bytes(volume.availableBytes)) available.",
-            evidence: "\(MetricFormatter.percentage(volume.availableFraction)) free; threshold: \(threshold)",
+            message: message,
+            evidence: evidence,
             recommendation: "Free space or move the next model/checkpoint to another volume.",
             relatedVolumeID: volume.id,
             createdAt: volume.capturedAt,
