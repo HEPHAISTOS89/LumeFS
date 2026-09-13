@@ -1,0 +1,5 @@
+{
+  "name": "LumeFS (Linux checks)",
+  "user": "ubuntu",
+  "install": "bash .cursor/install.sh"
+}
