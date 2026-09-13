@@ -103,7 +103,8 @@ result with a run ID or explicitly `NOT RUN`.
 | P1-9 — quota administrator path (`7dd95b7`) | Passed, 123 tests, 4 skips | run 34734697640 |
 | P1-11 — placement plan and additive copy, first push (`637f125`) | **FAILED**: 2 of 15 new tests — `FileManager.copyItem` on a dangling symbolic link threw “doesn't exist”; plan, `copyfile(3)` copy, cancellation and journal tests passed | run 34735589219 |
 | P1-11 — `destinationOfSymbolicLink` + `createSymbolicLink` (`c525f3c`) | **FAILED** with the same message on the dangling link | run 34735873767 |
-| P1-11 — links recreated with `readlink(2)` / `symlink(2)`, dangling link added to the fixture | see the row appended below once the run completes | PR #2 |
+| P1-11 — links recreated with `readlink(2)` / `symlink(2)`, dangling link added to the fixture, labeled step errors (`c5baa7d`) | **FAILED**, but now with the real cause: “model.bin: outside the source tree” — `resolvingSymlinksInPath()` strips `/private` from the plan path while the URL enumerator yields `/private/var/...`, so prefix-based relative paths were wrong | run 34736169473 |
+| P1-11 — copy walk switched to `enumerator(atPath:)` (relative paths) + `attributesOfItem` (lstat) | see the row appended below once the run completes | PR #2 |
 | Placement copy on a real second volume / NAS | `NOT RUN` — tests use a temporary tree on one APFS volume (clone path); cross-volume `copyfile` data path and progress callbacks are exercised only by inspection | — |
 | Live SMART `Failing` device | `NOT RUN` — no failing device available; the rule is covered by unit tests only | — |
 | I/O trend comparison with `iostat` | `NOT RUN` in this environment; procedure below | — |

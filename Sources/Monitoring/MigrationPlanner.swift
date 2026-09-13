@@ -153,7 +153,11 @@ struct MigrationPlanner: Sendable {
     ) throws -> MigrationPlan {
         let source = sourceURL.standardizedFileURL.resolvingSymlinksInPath()
         let root = destinationRoot.standardizedFileURL.resolvingSymlinksInPath()
-        let destination = root.appendingPathComponent(source.lastPathComponent, isDirectory: true)
+        var sourceIsDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: source.path, isDirectory: &sourceIsDirectory) else {
+            throw MigrationPlanError.sourceMissing
+        }
+        let destination = root.appendingPathComponent(source.lastPathComponent, isDirectory: sourceIsDirectory.boolValue)
 
         guard inventory.fileCount > 0 else { throw MigrationPlanError.emptySource }
         // Destination equal to the source falls through to the existence check.
@@ -370,39 +374,38 @@ actor MigrationExecutor {
             }
 
             try fileManager.createDirectory(at: plan.destinationURL, withIntermediateDirectories: false)
-            let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey, .isRegularFileKey, .fileSizeKey]
-            guard let enumerator = fileManager.enumerator(at: plan.sourceURL, includingPropertiesForKeys: keys, options: []) else {
+            // The path-based enumerator yields paths relative to the source, in
+            // pre-order, without following symbolic links. That avoids any
+            // prefix arithmetic on absolute paths, which differ between the
+            // resolved plan URL (`/var/...`) and enumerated URLs (`/private/var/...`).
+            guard let enumerator = fileManager.enumerator(atPath: plan.sourceURL.path) else {
                 throw MigrationPlanError.sourceNotReadable
             }
 
-            let sourcePrefix = plan.sourceURL.path.hasSuffix("/") ? plan.sourceURL.path : plan.sourceURL.path + "/"
-            for case let url as URL in enumerator {
+            for case let relative as String in enumerator {
                 try Task.checkCancellation()
-                // The enumerator builds child URLs from the source URL, so the
-                // prefix matches literally; anything else must not be copied.
-                guard url.path.hasPrefix(sourcePrefix) else {
-                    throw MigrationCopyError.copyFailed(path: url.lastPathComponent, message: "outside the source tree")
-                }
-                let relative = String(url.path.dropFirst(sourcePrefix.count))
+                let source = plan.sourceURL.appendingPathComponent(relative)
                 let target = plan.destinationURL.appendingPathComponent(relative)
-                let values: URLResourceValues
+                // `attributesOfItem` does not traverse a terminal symlink.
+                let type: FileAttributeType?
                 do {
-                    values = try url.resourceValues(forKeys: Set(keys))
+                    type = try fileManager.attributesOfItem(atPath: source.path)[.type] as? FileAttributeType
                 } catch {
                     throw MigrationCopyError.copyFailed(path: relative, message: "attributes: \(error.localizedDescription)")
                 }
 
-                if values.isSymbolicLink == true {
-                    try recreateSymbolicLink(at: url, to: target, relativePath: relative)
-                } else if values.isDirectory == true {
+                switch type {
+                case .typeSymbolicLink?:
+                    try recreateSymbolicLink(at: source, to: target, relativePath: relative)
+                case .typeDirectory?:
                     do {
                         try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
                     } catch {
                         throw MigrationCopyError.copyFailed(path: relative, message: "mkdir: \(error.localizedDescription)")
                     }
-                } else if values.isRegularFile == true {
+                case .typeRegular?:
                     try copyFile(
-                        from: url,
+                        from: source,
                         to: target,
                         relativePath: relative,
                         state: &state,
@@ -410,6 +413,10 @@ actor MigrationExecutor {
                         incomplete: &incomplete,
                         progress: progress
                     )
+                default:
+                    // Sockets, pipes, devices and unknown types are not copied;
+                    // the inventory already counted them as unreadable.
+                    continue
                 }
             }
             state.currentItem = nil

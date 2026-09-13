@@ -229,7 +229,7 @@ directories, symbolic links (never followed) and unreadable entries, sums
 logical sizes and records the largest file, and checks `Task.checkCancellation()`
 every 256 entries so Cancel is honored. `MigrationPlanner.plan(...)` then
 derives the destination as `<root>/<source name>` on resolved paths and rejects,
-in this order: an empty source, a destination inside the source, a source inside
+in this order: a missing source, an empty source, a destination inside the source, a source inside
 the destination, an unmounted or missing root, an existing destination (LumeFS
 never merges or overwrites), a read-only volume or root, and insufficient space.
 Required space is logical bytes plus the same 20% margin as the readiness
