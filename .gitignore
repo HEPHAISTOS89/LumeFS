@@ -11,3 +11,5 @@ xcuserdata/
 *.log
 Artifacts/
 BenchmarkData/
+
+build/
