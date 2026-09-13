@@ -66,7 +66,7 @@ alert that used it.
   through `F_NOCACHE`, and cached read from the macOS buffer cache, with
   explicit `BENCHMARK` provenance and cleanup status.
 - A workload-placement estimate with a 20% capacity margin and conservative current-user quota headroom when structured live limits match the volume.
-- A Placement view (⌘7) that turns the estimate into an additive copy: choose
+- A Placement view (⌘6) that turns the estimate into an additive copy: choose
   a source folder or file and a writable volume or folder, run a dry run
   (inventory, destination checks, free space with the same 20% margin,
   labeled `ESTIMATE`), confirm once in a dialog, then copy with progress and

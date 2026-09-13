@@ -109,8 +109,11 @@ result with a run ID or explicitly `NOT RUN`.
 | Placement copy on a real second volume / NAS | `NOT RUN` — tests use a temporary tree on one APFS volume (clone path); cross-volume `copyfile` data path and progress callbacks are exercised only by inspection | — |
 | Live SMART `Failing` device | `NOT RUN` — no failing device available; the rule is covered by unit tests only | — |
 | I/O trend comparison with `iostat` | `NOT RUN` in this environment; procedure below | — |
-| Notification delivery, save panel export, `NSOpenPanel` flows | `NOT RUN` — need an interactive macOS session; the planners/exporters behind them are unit-tested | — |
-| App launch, window sizes, Light/Dark, VoiceOver, ⌘1–⌘7 | `NOT RUN` — no macOS desktop in the agent environment | — |
+| JSON save-panel export and source/destination `NSOpenPanel` flows | Passed on macOS 26.6.2: selected a disposable source and destination folder, completed the copy, exported JSON, parsed it successfully, and compared the source and destination trees byte-for-byte | Local interactive verification, 2026-09-13 |
+| Notification delivery | `NOT RUN` — notification permission was intentionally left off | — |
+| App launch, compact/full window layouts, Light/Dark, pause/resume, refresh, ⌘1–⌘7 | Passed on macOS 26.6.2 using the app built from commit `00554339a6212e3ddefde04b0484a7922b2b6a68`; all seven sections rendered, scrolled and remained operable at both tested sizes | Local interactive verification, 2026-09-13 |
+| Accessibility tree and keyboard navigation | Passed for exposed labels, values, help text and ⌘1–⌘7 navigation in the macOS accessibility tree | Local interactive verification, 2026-09-13 |
+| VoiceOver spoken output and system Reduce Motion behavior | `NOT RUN` — these system modes were not enabled during the final interactive pass | — |
 
 The skips are the live NFS integration tests, which skip themselves when no
 NFS mount is present on the runner. No test was disabled or weakened in this
