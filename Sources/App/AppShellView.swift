@@ -9,20 +9,11 @@ struct AppShellView: View {
                 Label {
                     Text(section.rawValue)
                 } icon: {
-                    Group {
-                        if let asset = section.navigationAsset {
-                            Image(asset)
-                                .renderingMode(.template)
-                                .resizable()
-                                .scaledToFit()
-                        } else {
-                            Image(systemName: section.symbolName)
-                                .resizable()
-                                .scaledToFit()
-                        }
-                    }
-                    .frame(width: 18, height: 18)
-                    .accessibilityHidden(true)
+                    Image(systemName: section.symbolName)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+                        .accessibilityHidden(true)
                 }
                     .tag(section)
             }

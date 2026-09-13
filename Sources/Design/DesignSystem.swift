@@ -164,47 +164,19 @@ struct CapacityStatusView: View {
     }
 }
 
-/// Product pictograms use one pinned SVG family; platform/status symbols stay native.
+/// Functional pictograms use SF Symbols so weight, contrast, accessibility and
+/// platform evolution stay aligned with macOS. Custom SVGs are reserved for
+/// product identity rather than recreating system controls.
 struct ProductIcon: View {
     let systemName: String
     var size: CGFloat = 18
 
-    static let assets: [String: String] = [
-        "internaldrive": "Lucide-hard-drive",
-        "network": "Lucide-network",
-        "chart.xyaxis.line": "Lucide-chart-no-axes-combined",
-        "arrow.clockwise": "Lucide-refresh-cw",
-        "arrow.up.arrow.down": "Lucide-arrow-down-up",
-        "arrow.down": "Lucide-arrow-down",
-        "arrow.up": "Lucide-arrow-up",
-        "clock": "Lucide-clock",
-        "speedometer": "Lucide-gauge",
-        "folder": "Lucide-folder",
-        "folder.badge.gearshape": "Lucide-folder-cog",
-        "hand.raised": "Lucide-hand",
-        "info.circle": "Lucide-info",
-        "chevron.right": "Lucide-chevron-right",
-        "arrow.right.circle": "Lucide-circle-arrow-right",
-        "play.rectangle": "Lucide-clapperboard",
-        "lock": "Lucide-lock",
-        "waveform.path.ecg": "Lucide-activity"
-    ]
-
     var body: some View {
-        Group {
-            if let asset = Self.assets[systemName] {
-                Image(asset)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Image(systemName: systemName)
-                    .resizable()
-                    .scaledToFit()
-            }
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
+        Image(systemName: systemName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 

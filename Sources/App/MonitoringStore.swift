@@ -12,19 +12,6 @@ enum AppSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    /// Pinned Lucide pictogram, or nil to use the SF Symbol in `symbolName`.
-    var navigationAsset: String? {
-        switch self {
-        case .overview: "Lucide-gauge"
-        case .volumes: "Lucide-hard-drive"
-        case .performance: "Lucide-chart-no-axes-combined"
-        case .attribution: nil
-        case .activity: "Lucide-clock-arrow-left"
-        case .placement: nil
-        case .alerts: "Lucide-bell"
-        }
-    }
-
     var symbolName: String {
         switch self {
         case .overview: "gauge.with.dots.needle.50percent"

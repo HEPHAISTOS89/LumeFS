@@ -56,8 +56,21 @@ actor ProcessIOCollector {
 
         var current: [String: ProcessCounters] = [:]
         var denied = 0
+        let effectiveUserID = UInt32(geteuid())
         for process in processes {
-            switch Self.readCounters(for: process, at: date) {
+            // XNU rejects cross-user rusage for this unprivileged app. Avoid a
+            // syscall that is guaranteed to fail for every such process while
+            // preserving the same honest denied-coverage count.
+            guard process.uid == effectiveUserID else {
+                denied += 1
+                continue
+            }
+            let identity = "\(process.pid)-\(process.startTime)"
+            switch Self.readCounters(
+                for: process,
+                at: date,
+                knownName: previousCounters[identity]?.name
+            ) {
             case let .success(counters):
                 current[counters.identity] = counters
             case .failure(.denied):
@@ -161,7 +174,8 @@ actor ProcessIOCollector {
 
     static func readCounters(
         for process: ProcessIdentity,
-        at date: Date
+        at date: Date,
+        knownName: String? = nil
     ) -> Result<ProcessCounters, ReadFailure> {
         guard let procPidRusage else { return .failure(.other(ENOSYS)) }
         var info = rusage_info_v4()
@@ -178,7 +192,9 @@ actor ProcessIOCollector {
         return .success(ProcessCounters(
             pid: process.pid,
             startTime: process.startTime,
-            name: fullName(for: process),
+            // A process identity includes its start time, so this cached name
+            // cannot leak across PID reuse. Resolve it only for new processes.
+            name: knownName ?? fullName(for: process),
             uid: process.uid,
             bytesRead: info.ri_diskio_bytesread,
             bytesWritten: info.ri_diskio_byteswritten,

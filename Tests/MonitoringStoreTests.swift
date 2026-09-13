@@ -13,12 +13,8 @@ final class MonitoringStoreTests: XCTestCase {
         XCTAssertEqual(AppAppearance.allCases.count, 3)
     }
 
-    func testProductAndNavigationIconsAreBundled() {
-        let assets = Set(ProductIcon.assets.values).union(AppSection.allCases.compactMap(\.navigationAsset))
-        for asset in assets {
-            XCTAssertNotNil(NSImage(named: NSImage.Name(asset)), "Missing vector asset: \(asset)")
-        }
-        for section in AppSection.allCases where section.navigationAsset == nil {
+    func testNavigationIconsUseAvailableSFSymbols() {
+        for section in AppSection.allCases {
             XCTAssertNotNil(
                 NSImage(systemSymbolName: section.symbolName, accessibilityDescription: nil),
                 "Missing SF Symbol: \(section.symbolName)"

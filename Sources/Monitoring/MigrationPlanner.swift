@@ -175,7 +175,15 @@ struct MigrationPlanner: Sendable {
         guard !fileManager.fileExists(atPath: destination.path) else {
             throw MigrationPlanError.destinationExists
         }
-        if let destinationVolume, destinationVolume.isReadOnly {
+        // A user-selected folder can live on the writable Data side of macOS's
+        // sealed system volume even when the mount snapshot for "/" is marked
+        // read-only. Trust that snapshot only when its mount point itself is the
+        // destination; for subfolders the folder's effective writability below
+        // is the source of truth.
+        if let destinationVolume,
+           destinationVolume.isReadOnly,
+           root.path == URL(fileURLWithPath: destinationVolume.mountPoint, isDirectory: true)
+               .standardizedFileURL.resolvingSymlinksInPath().path {
             throw MigrationPlanError.destinationReadOnly
         }
         guard fileManager.isWritableFile(atPath: root.path) else {

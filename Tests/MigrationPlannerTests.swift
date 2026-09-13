@@ -113,6 +113,33 @@ final class MigrationPlannerTests: XCTestCase {
         }
     }
 
+    func testPlanAllowsWritableFolderInsideReadOnlyReportedRootVolume() throws {
+        let inventory = try planner.inventory(of: source)
+        let sealedRootSnapshot = VolumeSnapshot(
+            id: "sealed-root",
+            name: "Macintosh HD",
+            mountPoint: "/",
+            source: "disk3s1s1",
+            fileSystem: .apfs,
+            fileSystemName: "apfs",
+            totalBytes: 1,
+            availableBytes: 1,
+            isReadOnly: true,
+            isLocal: true,
+            capturedAt: Date()
+        )
+
+        let plan = try planner.plan(
+            source: source,
+            destinationRoot: destinationRoot,
+            destinationVolume: sealedRootSnapshot,
+            inventory: inventory
+        )
+
+        XCTAssertEqual(plan.destinationURL.deletingLastPathComponent().path, destinationRoot.resolvingSymlinksInPath().path)
+        XCTAssertTrue(plan.fits)
+    }
+
     func testPathContainmentIsComponentAware() {
         XCTAssertTrue(MigrationPlanner.path("/Volumes/Data/models", isInside: "/Volumes/Data"))
         XCTAssertTrue(MigrationPlanner.path("/Volumes/Data/models", isInside: "/Volumes/Data/"))
