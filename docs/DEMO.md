@@ -121,7 +121,7 @@ Optional 30-second extension when a second writable volume is mounted:
 
 | Time | Action | Evidence that must be visible |
 | --- | --- | --- |
-| 2:50 | Placement (⌘7) → **Choose Source…** on a small model folder → pick the second volume → **Plan Copy (Dry Run)** | Plan card with file count, data, “Required (data + 20% margin)”, “Available … purgeable space not counted”, `ESTIMATE` badge; nothing created yet |
+| 2:50 | Placement (⌘6) → **Choose Source…** on a small model folder → pick the second volume → **Plan Copy (Dry Run)** | Plan card with file count, data, “Required (data + 20% margin)”, “Available … purgeable space not counted”, `ESTIMATE` badge; nothing created yet |
 | 3:00 | **Copy…** → read the dialog aloud → **Copy** | Confirmation names both paths and says the original is never deleted; progress bar advances; **Cancel** visible |
 | 3:15 | Result card, then Finder | “Copy completed”, size-verified count, “The original is untouched”; both trees exist; the journal lists `Planned`, `Started`, `Completed` |
 

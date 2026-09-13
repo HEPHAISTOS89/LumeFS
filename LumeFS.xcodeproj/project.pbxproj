@@ -7,26 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		231C8871C95C21B75DC571A6 /* MigrationPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BF42D02CBDA2CCE41F7BA04 /* MigrationPlannerTests.swift */; };
-		CA71FF39889234E6C14B3BF8 /* PlacementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE0513975982BC139455E494 /* PlacementView.swift */; };
-		11BD27E14D64822E2DA27DCC /* MigrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C0470CC48CB390BE00A38A /* MigrationController.swift */; };
-		FF9C8D27811C2D094D8FC5DD /* MigrationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A341BB4127E171F64B020F0C /* MigrationPlanner.swift */; };
-		7C7C7A83FCBD9B11057CC57E /* SnapshotExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */; };
-		B84F14A12D6DBCC71DBE7AEA /* AlertHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */; };
-		BF15D855489040841D629CAF /* SnapshotExportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */; };
-		A12F7404B17FD4E8F3554EBF /* CriticalAlertNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */; };
-		FFE7F674DA2728B66F5DDAFF /* CriticalAlertPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */; };
-		BBA03EE5E9EA243C8D38CEB7 /* SnapshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */; };
-		92FAD86585B9DB1F01F4DC93 /* AlertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C28635F938255F3F50D737 /* AlertHistory.swift */; };
-		494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */; };
-		6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */; };
-		FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */; };
-		9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0E498AB63CAEC2645E1245 /* AttributionView.swift */; };
-		71D915B014BCD80742E1D418 /* NFSActiveUserCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */; };
-		77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */; };
-		B6EFA120131B4FDBBBCAE03A /* NFSMountCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */; };
+		0926D081FBF9F8BBDF794B77 /* MigrationPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3C2C52A345935CB39D4A10 /* MigrationPlannerTests.swift */; };
+		0DF07BE91B17AC763A183CF6 /* ProcessIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA77BEA5B75F962AF0F7EC51 /* ProcessIOCollector.swift */; };
+		1A11505DAB44F817D9C55644 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 227710B30E943E511C898116 /* AttributionView.swift */; };
 		1C506BBC5E5D43F3BD0912A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 94A59371FB963B8EFA4A62B5 /* Assets.xcassets */; };
+		1D26D38E6C6A0549C01B9733 /* NFSMountCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7865F975EDE2FC61067FD54D /* NFSMountCollector.swift */; };
+		1E161C9FB2157AF62F3EAB74 /* SnapshotExportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4B2C96584A2EF404AEE19F0 /* SnapshotExportCoordinator.swift */; };
 		1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = F226055490C67517BA95E4D1 /* DesignSystem.swift */; };
+		1F59D641DE582C67971C4711 /* AlertHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49F2E94325F0421EF0DDB548 /* AlertHistoryTests.swift */; };
+		23E4AD3F005B05961D382195 /* NFSMountCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B237E3B4302A2DF69552F81E /* NFSMountCollectorTests.swift */; };
 		25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */; };
 		27A55461F5341EBA86B1DE78 /* MonitoringStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */; };
 		2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */; };
@@ -35,7 +24,9 @@
 		302852105AB69F5CD2981CBC /* LumeFSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9410F5952D4211FE68F050D0 /* LumeFSApp.swift */; };
 		3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */; };
 		35100C74ED82A8FE3D3D5419 /* AlertsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */; };
+		3C8C4ACFA10B0DF7300BAE45 /* NFSActiveUserCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8732EF9783781720DECF589 /* NFSActiveUserCollectorTests.swift */; };
 		3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */; };
+		42BD78AB263D3E402674AC1D /* PlacementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31396ECC4915F17A9BE10C32 /* PlacementView.swift */; };
 		48FDB65A7E9E34A5B99473E5 /* VolumesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */; };
 		49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 744C03F1BB4954C8F902F3C9 /* SettingsView.swift */; };
 		4ED918B438A92B86DDD94CF5 /* APFSMetadataCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B667C56BD4EA8334C1CBB8 /* APFSMetadataCollector.swift */; };
@@ -46,21 +37,30 @@
 		5885AD3AC01810D915047CD0 /* MountCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */; };
 		617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */; };
 		67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */; };
+		729F81EAB6C9AC06C28CC3C8 /* SnapshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86BFD3D14CA4DA66F7D3059D /* SnapshotExporter.swift */; };
 		72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */; };
 		74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31104582C1D6B0AEBAF87C95 /* OverviewView.swift */; };
 		7D8B1232792E5BF3A092FF04 /* WorkloadReadinessCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */; };
+		7DB4B93DEF6324AF15D73E46 /* MigrationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF9AB65AC64C8442A289720C /* MigrationController.swift */; };
 		800871247CCEF24626B992ED /* MonitoringModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA82F49E8C9C0E070EF023C9 /* MonitoringModels.swift */; };
+		88A55F8E1ECD5ADCCEE1CD47 /* ProcessIOCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C34A0D44562EC6A2785D3C8B /* ProcessIOCollectorTests.swift */; };
 		8B0429361256656DDF6AD54E /* PerformanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEB99EC1ABF54064672256B /* PerformanceView.swift */; };
 		8C7F53C5C88E6DEE9ED67549 /* MonitoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */; };
 		9DCFBBC08212D46A8370B70B /* FileActivityCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */; };
+		A0CDA665815C64C7CEA6AD55 /* MigrationPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3820AEFB4EE916B7F4040D6C /* MigrationPlanner.swift */; };
 		A69CF427F5C3BE5EACD3DE71 /* Formatters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87934E7EBB6C1DCE2D295284 /* Formatters.swift */; };
+		A88A13708DAD7F6961FAE138 /* NFSActiveUserCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAE8107CB5A96A17F82849D9 /* NFSActiveUserCollector.swift */; };
 		A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */; };
+		B22EC1D08AD982C267AF8662 /* CriticalAlertNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E779A031DFDBCD6F74F0C53 /* CriticalAlertNotifier.swift */; };
 		B6790B91284C748822CBC71F /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834E5BECCD42D30BB2F05C01 /* ActivityView.swift */; };
 		B9497211E4AAAFB510857424 /* MonitoringStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */; };
+		C257321F8EAA5E74EDEC9BE4 /* CriticalAlertPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B284DF9B2FEC4664F68D8520 /* CriticalAlertPlanner.swift */; };
 		C41C42B3F13BAE1FB42B237B /* pnfs-client-sample.json in Resources */ = {isa = PBXBuildFile; fileRef = 256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */; };
 		D034ACE6CD401D97E2712780 /* CollectorIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB49247D80B23783126EABED /* CollectorIntegrationTests.swift */; };
 		D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 875DCB89A09565F6E509D9C9 /* NFSCollector.swift */; };
 		D530592825F84CC9315F577C /* Lucide-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8A32BE2D055DCA02855E1353 /* Lucide-LICENSE.txt */; };
+		DA85FAC7AB1CB9490D5948A2 /* AlertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FC6541FBD2A302F5078873F /* AlertHistory.swift */; };
+		DB88B18A89BBC3C432A600DE /* SnapshotExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF73D354E5746DEFA3855628 /* SnapshotExporterTests.swift */; };
 		DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */; };
 		E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */; };
 /* End PBXBuildFile section */
@@ -76,44 +76,34 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		4BF42D02CBDA2CCE41F7BA04 /* MigrationPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPlannerTests.swift; sourceTree = "<group>"; };
-		CE0513975982BC139455E494 /* PlacementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementView.swift; sourceTree = "<group>"; };
-		91C0470CC48CB390BE00A38A /* MigrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationController.swift; sourceTree = "<group>"; };
-		A341BB4127E171F64B020F0C /* MigrationPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPlanner.swift; sourceTree = "<group>"; };
-		41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporterTests.swift; sourceTree = "<group>"; };
-		9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistoryTests.swift; sourceTree = "<group>"; };
-		CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExportCoordinator.swift; sourceTree = "<group>"; };
-		11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertNotifier.swift; sourceTree = "<group>"; };
-		699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertPlanner.swift; sourceTree = "<group>"; };
-		453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporter.swift; sourceTree = "<group>"; };
-		83C28635F938255F3F50D737 /* AlertHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistory.swift; sourceTree = "<group>"; };
-		0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollectorTests.swift; sourceTree = "<group>"; };
-		1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollector.swift; sourceTree = "<group>"; };
-		B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollectorTests.swift; sourceTree = "<group>"; };
-		4F0E498AB63CAEC2645E1245 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
-		703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollector.swift; sourceTree = "<group>"; };
-		EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollectorTests.swift; sourceTree = "<group>"; };
-		5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollector.swift; sourceTree = "<group>"; };
 		095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveNFSIntegrationTests.swift; sourceTree = "<group>"; };
 		0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCommandRunner.swift; sourceTree = "<group>"; };
 		1DEB99EC1ABF54064672256B /* PerformanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceView.swift; sourceTree = "<group>"; };
+		1E779A031DFDBCD6F74F0C53 /* CriticalAlertNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertNotifier.swift; sourceTree = "<group>"; };
+		227710B30E943E511C898116 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
 		254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertRuleEngineTests.swift; sourceTree = "<group>"; };
 		256FE32FE2AA9056AD3BBF3E /* pnfs-client-sample.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "pnfs-client-sample.json"; sourceTree = "<group>"; };
 		2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricFormatterTests.swift; sourceTree = "<group>"; };
 		31104582C1D6B0AEBAF87C95 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		31396ECC4915F17A9BE10C32 /* PlacementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlacementView.swift; sourceTree = "<group>"; };
+		3820AEFB4EE916B7F4040D6C /* MigrationPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPlanner.swift; sourceTree = "<group>"; };
 		3883C4245505A308EED90747 /* DiskBenchmark.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiskBenchmark.swift; sourceTree = "<group>"; };
 		3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringStore.swift; sourceTree = "<group>"; };
+		49F2E94325F0421EF0DDB548 /* AlertHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistoryTests.swift; sourceTree = "<group>"; };
 		519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileActivityCollectorTests.swift; sourceTree = "<group>"; };
 		52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculatorTests.swift; sourceTree = "<group>"; };
 		52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemCommandRunnerTests.swift; sourceTree = "<group>"; };
 		5D7DAFB28EDBE0BD6F0D990A /* LumeFS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LumeFS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringStoreTests.swift; sourceTree = "<group>"; };
+		6C3C2C52A345935CB39D4A10 /* MigrationPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationPlannerTests.swift; sourceTree = "<group>"; };
 		702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileActivityCollector.swift; sourceTree = "<group>"; };
 		744C03F1BB4954C8F902F3C9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7865F975EDE2FC61067FD54D /* NFSMountCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollector.swift; sourceTree = "<group>"; };
 		834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BenchmarkGuardTests.swift; sourceTree = "<group>"; };
 		834E5BECCD42D30BB2F05C01 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
 		847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCollector.swift; sourceTree = "<group>"; };
 		851AEE16D98E36547FE5F68E /* LumeFSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LumeFSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		86BFD3D14CA4DA66F7D3059D /* SnapshotExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporter.swift; sourceTree = "<group>"; };
 		875DCB89A09565F6E509D9C9 /* NFSCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSCollector.swift; sourceTree = "<group>"; };
 		87934E7EBB6C1DCE2D295284 /* Formatters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatters.swift; sourceTree = "<group>"; };
 		8A32BE2D055DCA02855E1353 /* Lucide-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Lucide-LICENSE.txt"; sourceTree = "<group>"; };
@@ -121,13 +111,23 @@
 		94A59371FB963B8EFA4A62B5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkloadReadinessCalculator.swift; sourceTree = "<group>"; };
 		9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertsView.swift; sourceTree = "<group>"; };
+		9FC6541FBD2A302F5078873F /* AlertHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistory.swift; sourceTree = "<group>"; };
 		A4C480D5342E06DBE4AAEC93 /* BlockIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockIOCollector.swift; sourceTree = "<group>"; };
+		AAE8107CB5A96A17F82849D9 /* NFSActiveUserCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollector.swift; sourceTree = "<group>"; };
+		AF73D354E5746DEFA3855628 /* SnapshotExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporterTests.swift; sourceTree = "<group>"; };
 		B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShellView.swift; sourceTree = "<group>"; };
+		B237E3B4302A2DF69552F81E /* NFSMountCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollectorTests.swift; sourceTree = "<group>"; };
+		B284DF9B2FEC4664F68D8520 /* CriticalAlertPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertPlanner.swift; sourceTree = "<group>"; };
 		BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringEngine.swift; sourceTree = "<group>"; };
+		C34A0D44562EC6A2785D3C8B /* ProcessIOCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollectorTests.swift; sourceTree = "<group>"; };
+		C8732EF9783781720DECF589 /* NFSActiveUserCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollectorTests.swift; sourceTree = "<group>"; };
 		CA82F49E8C9C0E070EF023C9 /* MonitoringModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonitoringModels.swift; sourceTree = "<group>"; };
 		D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VolumesView.swift; sourceTree = "<group>"; };
 		D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSCollectorTests.swift; sourceTree = "<group>"; };
+		D4B2C96584A2EF404AEE19F0 /* SnapshotExportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExportCoordinator.swift; sourceTree = "<group>"; };
+		DA77BEA5B75F962AF0F7EC51 /* ProcessIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollector.swift; sourceTree = "<group>"; };
 		DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountCollector.swift; sourceTree = "<group>"; };
+		DF9AB65AC64C8442A289720C /* MigrationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MigrationController.swift; sourceTree = "<group>"; };
 		E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APFSMetadataCollectorTests.swift; sourceTree = "<group>"; };
 		E52F65059B3F764326636571 /* QuotaCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaCollectorTests.swift; sourceTree = "<group>"; };
 		F226055490C67517BA95E4D1 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
@@ -140,7 +140,7 @@
 		00FE5470A4026A4921A93FEA /* Tests */ = {
 			isa = PBXGroup;
 			children = (
-				9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */,
+				49F2E94325F0421EF0DDB548 /* AlertHistoryTests.swift */,
 				254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */,
 				E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */,
 				834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */,
@@ -148,14 +148,14 @@
 				519242C193AD145C49B2D71F /* FileActivityCollectorTests.swift */,
 				095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */,
 				2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */,
-				4BF42D02CBDA2CCE41F7BA04 /* MigrationPlannerTests.swift */,
+				6C3C2C52A345935CB39D4A10 /* MigrationPlannerTests.swift */,
 				6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */,
-				B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */,
+				C8732EF9783781720DECF589 /* NFSActiveUserCollectorTests.swift */,
 				D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */,
-				EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */,
-				0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */,
+				B237E3B4302A2DF69552F81E /* NFSMountCollectorTests.swift */,
+				C34A0D44562EC6A2785D3C8B /* ProcessIOCollectorTests.swift */,
 				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
-				41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */,
+				AF73D354E5746DEFA3855628 /* SnapshotExporterTests.swift */,
 				52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */,
 				52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */,
 			);
@@ -170,10 +170,10 @@
 				3883C4245505A308EED90747 /* DiskBenchmark.swift */,
 				702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */,
 				DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */,
-				703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */,
+				AAE8107CB5A96A17F82849D9 /* NFSActiveUserCollector.swift */,
 				875DCB89A09565F6E509D9C9 /* NFSCollector.swift */,
-				5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */,
-				1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */,
+				7865F975EDE2FC61067FD54D /* NFSMountCollector.swift */,
+				DA77BEA5B75F962AF0F7EC51 /* ProcessIOCollector.swift */,
 				847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */,
 				0A15F00350E743FEB5218D64 /* SystemCommandRunner.swift */,
 			);
@@ -183,12 +183,12 @@
 		2093FAAE0CF6E5E20BF3AA41 /* Monitoring */ = {
 			isa = PBXGroup;
 			children = (
-				83C28635F938255F3F50D737 /* AlertHistory.swift */,
+				9FC6541FBD2A302F5078873F /* AlertHistory.swift */,
 				FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */,
-				699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */,
-				A341BB4127E171F64B020F0C /* MigrationPlanner.swift */,
+				B284DF9B2FEC4664F68D8520 /* CriticalAlertPlanner.swift */,
+				3820AEFB4EE916B7F4040D6C /* MigrationPlanner.swift */,
 				BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */,
-				453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */,
+				86BFD3D14CA4DA66F7D3059D /* SnapshotExporter.swift */,
 				96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */,
 			);
 			path = Monitoring;
@@ -257,11 +257,11 @@
 			isa = PBXGroup;
 			children = (
 				B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */,
-				11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */,
+				1E779A031DFDBCD6F74F0C53 /* CriticalAlertNotifier.swift */,
 				9410F5952D4211FE68F050D0 /* LumeFSApp.swift */,
-				91C0470CC48CB390BE00A38A /* MigrationController.swift */,
+				DF9AB65AC64C8442A289720C /* MigrationController.swift */,
 				3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */,
-				CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */,
+				D4B2C96584A2EF404AEE19F0 /* SnapshotExportCoordinator.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -287,10 +287,10 @@
 			children = (
 				834E5BECCD42D30BB2F05C01 /* ActivityView.swift */,
 				9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */,
-				4F0E498AB63CAEC2645E1245 /* AttributionView.swift */,
+				227710B30E943E511C898116 /* AttributionView.swift */,
 				31104582C1D6B0AEBAF87C95 /* OverviewView.swift */,
 				1DEB99EC1ABF54064672256B /* PerformanceView.swift */,
-				CE0513975982BC139455E494 /* PlacementView.swift */,
+				31396ECC4915F17A9BE10C32 /* PlacementView.swift */,
 				744C03F1BB4954C8F902F3C9 /* SettingsView.swift */,
 				D0AAB15BFFA9FA762EEA1FE8 /* VolumesView.swift */,
 			);
@@ -385,22 +385,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B84F14A12D6DBCC71DBE7AEA /* AlertHistoryTests.swift in Sources */,
 				2E80C6218A4FDA7FF4259173 /* APFSMetadataCollectorTests.swift in Sources */,
+				1F59D641DE582C67971C4711 /* AlertHistoryTests.swift in Sources */,
 				522468FA8905E601EB7D773F /* AlertRuleEngineTests.swift in Sources */,
 				DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */,
 				D034ACE6CD401D97E2712780 /* CollectorIntegrationTests.swift in Sources */,
 				9DCFBBC08212D46A8370B70B /* FileActivityCollectorTests.swift in Sources */,
 				3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */,
 				52A50D3852DB2A94F4C28289 /* MetricFormatterTests.swift in Sources */,
-				231C8871C95C21B75DC571A6 /* MigrationPlannerTests.swift in Sources */,
+				0926D081FBF9F8BBDF794B77 /* MigrationPlannerTests.swift in Sources */,
 				B9497211E4AAAFB510857424 /* MonitoringStoreTests.swift in Sources */,
-				FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */,
+				3C8C4ACFA10B0DF7300BAE45 /* NFSActiveUserCollectorTests.swift in Sources */,
 				67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */,
-				77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */,
-				494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */,
+				23E4AD3F005B05961D382195 /* NFSMountCollectorTests.swift in Sources */,
+				88A55F8E1ECD5ADCCEE1CD47 /* ProcessIOCollectorTests.swift in Sources */,
 				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
-				7C7C7A83FCBD9B11057CC57E /* SnapshotExporterTests.swift in Sources */,
+				DB88B18A89BBC3C432A600DE /* SnapshotExporterTests.swift in Sources */,
 				3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */,
 				617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */,
 			);
@@ -410,38 +410,38 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				92FAD86585B9DB1F01F4DC93 /* AlertHistory.swift in Sources */,
 				4ED918B438A92B86DDD94CF5 /* APFSMetadataCollector.swift in Sources */,
 				B6790B91284C748822CBC71F /* ActivityView.swift in Sources */,
+				DA85FAC7AB1CB9490D5948A2 /* AlertHistory.swift in Sources */,
 				25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */,
 				35100C74ED82A8FE3D3D5419 /* AlertsView.swift in Sources */,
 				E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */,
-				9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */,
+				1A11505DAB44F817D9C55644 /* AttributionView.swift in Sources */,
 				A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */,
-				A12F7404B17FD4E8F3554EBF /* CriticalAlertNotifier.swift in Sources */,
-				FFE7F674DA2728B66F5DDAFF /* CriticalAlertPlanner.swift in Sources */,
+				B22EC1D08AD982C267AF8662 /* CriticalAlertNotifier.swift in Sources */,
+				C257321F8EAA5E74EDEC9BE4 /* CriticalAlertPlanner.swift in Sources */,
 				1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */,
 				52266E8E0916F536F86B5701 /* DiskBenchmark.swift in Sources */,
 				2B2CE870626F7F4E8F5C8EC1 /* FileActivityCollector.swift in Sources */,
 				A69CF427F5C3BE5EACD3DE71 /* Formatters.swift in Sources */,
 				302852105AB69F5CD2981CBC /* LumeFSApp.swift in Sources */,
-				11BD27E14D64822E2DA27DCC /* MigrationController.swift in Sources */,
-				FF9C8D27811C2D094D8FC5DD /* MigrationPlanner.swift in Sources */,
+				7DB4B93DEF6324AF15D73E46 /* MigrationController.swift in Sources */,
+				A0CDA665815C64C7CEA6AD55 /* MigrationPlanner.swift in Sources */,
 				8C7F53C5C88E6DEE9ED67549 /* MonitoringEngine.swift in Sources */,
 				800871247CCEF24626B992ED /* MonitoringModels.swift in Sources */,
 				27A55461F5341EBA86B1DE78 /* MonitoringStore.swift in Sources */,
 				5885AD3AC01810D915047CD0 /* MountCollector.swift in Sources */,
-				71D915B014BCD80742E1D418 /* NFSActiveUserCollector.swift in Sources */,
+				A88A13708DAD7F6961FAE138 /* NFSActiveUserCollector.swift in Sources */,
 				D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */,
-				B6EFA120131B4FDBBBCAE03A /* NFSMountCollector.swift in Sources */,
+				1D26D38E6C6A0549C01B9733 /* NFSMountCollector.swift in Sources */,
 				74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */,
 				8B0429361256656DDF6AD54E /* PerformanceView.swift in Sources */,
-				CA71FF39889234E6C14B3BF8 /* PlacementView.swift in Sources */,
-				6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */,
+				42BD78AB263D3E402674AC1D /* PlacementView.swift in Sources */,
+				0DF07BE91B17AC763A183CF6 /* ProcessIOCollector.swift in Sources */,
 				72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */,
 				49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */,
-				BF15D855489040841D629CAF /* SnapshotExportCoordinator.swift in Sources */,
-				BBA03EE5E9EA243C8D38CEB7 /* SnapshotExporter.swift in Sources */,
+				1E161C9FB2157AF62F3EAB74 /* SnapshotExportCoordinator.swift in Sources */,
+				729F81EAB6C9AC06C28CC3C8 /* SnapshotExporter.swift in Sources */,
 				2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */,
 				48FDB65A7E9E34A5B99473E5 /* VolumesView.swift in Sources */,
 				7D8B1232792E5BF3A092FF04 /* WorkloadReadinessCalculator.swift in Sources */,

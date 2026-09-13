@@ -48,7 +48,7 @@ All notable project changes will be documented here.
 - Opt-in macOS notifications for critical alerts (Settings › Notifications):
   one notification per refresh, 10-minute per-alert cooldown, alert title only,
   no permission request until enabled.
-- Placement section (⌘7): choose a source folder or file and a writable volume
+- Placement section (⌘6): choose a source folder or file and a writable volume
   or folder, run a dry-run plan (inventory, containment / existence /
   read-only checks, free space with the 20% margin, `ESTIMATE`), confirm once
   in a dialog that names both paths, then copy with progress and Cancel.
