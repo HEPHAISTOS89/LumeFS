@@ -97,8 +97,11 @@ details.
 
 ## Requirements
 
-- macOS 14 or newer.
-- Xcode with the macOS 14 SDK or newer.
+- macOS 14 or newer to run the app (deployment target 14.0).
+- Xcode 16 or newer to build. CI builds and tests on the GitHub `macos-15`
+  image (Xcode 16); the maintainer also validates on Xcode 26. Code that uses
+  macOS 26 SDK symbols is guarded with `#if compiler(>=6.2)` so older
+  toolchains keep compiling with a native fallback.
 - XcodeGen only when regenerating `LumeFS.xcodeproj` from `project.yml`.
 
 No NFS server is required to build or run the app. The optional local NFS lab

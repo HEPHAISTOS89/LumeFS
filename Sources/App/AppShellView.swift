@@ -24,12 +24,20 @@ struct AppShellView: View {
             destination
                 .navigationTitle(store.selectedSection?.rawValue ?? "LumeFS")
                 .toolbar {
+                    // `ToolbarSpacer` and `sharedBackgroundVisibility` exist only in the
+                    // macOS 26 SDK (Swift 6.2 toolchain). The compiler check keeps the
+                    // project buildable with Xcode 16 while the runtime check keeps the
+                    // Liquid Glass grouping on macOS 26 hosts.
+                    #if compiler(>=6.2)
                     if #available(macOS 26.0, *) {
                         statusItem.sharedBackgroundVisibility(.hidden)
                         ToolbarSpacer(.fixed, placement: .primaryAction)
                     } else {
                         statusItem
                     }
+                    #else
+                    statusItem
+                    #endif
                     monitoringActions
                 }
         }
