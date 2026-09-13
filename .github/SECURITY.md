@@ -23,9 +23,15 @@ project remains a hackathon prototype.
 - The application is local and contains no network client or telemetry path.
 - The App Sandbox is disabled; Hardened Runtime is enabled.
 - Storage metadata is collected through `getfsstat`, IOKit, `diskutil`,
-  `nfsstat`, and `quota`.
-- `diskutil`, `nfsstat`, and `quota` are the only executable paths represented by
-  the command-runner enum.
+  `nfsstat`, `nfsd status`, and `quota`.
+- `diskutil`, `nfsstat`, `nfsd`, and `quota` are the only executable paths
+  represented by the command-runner enum. For `nfsd` the runner accepts exactly
+  `status`, which Apple's `nfsd` source treats as an unprivileged, read-only
+  command; `start`, `stop`, `enable`, `disable`, `update` and `checkexports` are
+  rejected.
+- NFS client addresses from `nfsstat -u` are collected numerically (no DNS
+  lookup), masked to their network prefix in the UI by default, and always
+  masked in alert text.
 - Foundation `Process` receives an executable URL and argument array; no shell is
   invoked.
 - Command arguments must match an executable-specific schema, commands are

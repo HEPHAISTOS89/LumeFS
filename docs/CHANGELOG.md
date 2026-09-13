@@ -11,6 +11,12 @@ All notable project changes will be documented here.
   status flags, shown in the volume detail and on the Performance screen.
 - Alert rules `nfs.mount.dead`, `nfs.mount.not_responding` (Critical) and
   `nfs.mount.recovery` (Warning) driven only by kernel flags on `LIVE` records.
+- Attribution section: server-side per-user NFS activity from
+  `nfsstat -u -n net -f JSON` (user, export, masked client address, request and
+  byte deltas over the 3 s interval, idle time) with `nfsd status` context and
+  an explicit unavailable state on a pure client.
+- Alert rules `nfs.user.write_burst` and `nfs.user.request_burst` (Warning) with
+  Settings-adjustable thresholds (defaults 100 MB/s and 1,000 requests/s).
 - `SMARTAssessment` classification: `Not Supported`, `Unknown` and empty SMART
   strings are absence of data, only explicit failure wording is Critical, and
   unknown wording is a Notice.

@@ -177,6 +177,50 @@ final class AlertRuleEngineTests: XCTestCase {
         XCTAssertTrue(alerts.isEmpty, "got \(alerts.map(\.ruleID))")
     }
 
+    func testNFSUserBurstsUseDocumentedThresholdsAndMaskedAddresses() {
+        let thresholds = NFSUserAlertThresholds(writeBytesPerSecond: 100_000_000, requestsPerSecond: 1_000)
+
+        let quiet = makeUserRate(writeBytesPerSecond: 99_999_999, requestsPerSecond: 999)
+        XCTAssertTrue(AlertRuleEngine().evaluate(
+            volumes: [], samples: [], nfs: .unavailable, previousNFS: nil,
+            nfsUserRates: [quiet], nfsUserThresholds: thresholds
+        ).isEmpty)
+
+        let writer = makeUserRate(writeBytesPerSecond: 100_000_000, requestsPerSecond: 0)
+        let writeAlerts = AlertRuleEngine().evaluate(
+            volumes: [], samples: [], nfs: .unavailable, previousNFS: nil,
+            nfsUserRates: [writer], nfsUserThresholds: thresholds
+        )
+        XCTAssertEqual(writeAlerts.map(\.ruleID), ["nfs.user.write_burst"])
+        XCTAssertEqual(writeAlerts.first?.severity, .warning)
+        XCTAssertTrue(writeAlerts.first?.message.contains("192.0.·.·") == true, writeAlerts.first?.message ?? "")
+        XCTAssertFalse(writeAlerts.first?.message.contains("192.0.2.10") == true)
+        XCTAssertTrue(
+            writeAlerts.first?.evidence.contains("threshold \(MetricFormatter.throughput(100_000_000))") == true,
+            writeAlerts.first?.evidence ?? ""
+        )
+
+        let storm = makeUserRate(writeBytesPerSecond: 500_000_000, requestsPerSecond: 5_000)
+        let both = AlertRuleEngine().evaluate(
+            volumes: [], samples: [], nfs: .unavailable, previousNFS: nil,
+            nfsUserRates: [storm], nfsUserThresholds: thresholds
+        )
+        XCTAssertEqual(Set(both.map(\.ruleID)), ["nfs.user.write_burst", "nfs.user.request_burst"])
+        XCTAssertTrue(both.allSatisfy { $0.provenance == .live && $0.relatedVolumeID == nil })
+    }
+
+    private func makeUserRate(writeBytesPerSecond: Double, requestsPerSecond: Double) -> NFSUserActivityRate {
+        let activity = NFSUserActivity(
+            id: "/export/models|alice@192.0.2.10", export: "/export/models", user: "alice", uid: nil,
+            address: "192.0.2.10", requests: 10, readBytes: 0, writeBytes: 0, idleSeconds: 1,
+            capturedAt: Date(), provenance: .live
+        )
+        return NFSUserActivityRate(
+            activity: activity, intervalSeconds: 3, requestsPerSecond: requestsPerSecond,
+            readBytesPerSecond: 0, writeBytesPerSecond: writeBytesPerSecond
+        )
+    }
+
     private func makeMount(statusFlags: [String]) -> NFSMountInfo {
         NFSMountInfo(
             id: "/Volumes/models", mountPoint: "/Volumes/models", source: "nas.lab.example:/export/models",

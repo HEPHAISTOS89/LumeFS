@@ -128,6 +128,43 @@ These are the client's negotiated parameters and kernel state, not per-mount
 throughput. macOS does not expose per-mount byte or operation counters; the
 client-wide counters above remain the only NFS traffic figures.
 
+## NFS users (server side)
+
+`nfsstat -u -n net -f JSON` reads the kernel's active-user list through
+`nfssvc(NFSSVC_USERSTATS)`. XNU grants that call without superuser (only
+`NFSSVC_NFSD` and `NFSSVC_ADDSOCK` require it), so no privilege prompt is
+involved. The list exists only on a Mac that runs `nfsd`; on a pure client the
+command prints `No NFS active user statistics found.` and an empty JSON
+document. `-n net` keeps addresses numeric, so collection performs no DNS
+lookup. `/sbin/nfsd status` (documented by Apple as an unprivileged command;
+exit 0 when running, 1 otherwise) tells the UI whether “no user” means “idle
+server” or “this Mac is not a server”.
+
+| Model field | Parsed source |
+| --- | --- |
+| Export | Key under `NFS Active User Info` |
+| User, uid | `User` (resolved name) or `Uuid` (numeric uid shown as `uid N`) |
+| Address | Text after the last `@` of the record key (IPv4 or IPv6 literal) |
+| Requests, read bytes, write bytes | `Requests`, `Read Bytes`, `Write Bytes` (cumulative per record) |
+| Idle | `Idle` as `h:mm:ss` converted to seconds |
+
+Rates are deltas between two consecutive `LIVE` snapshots three seconds apart
+(the NFS collection interval), divided by the measured interval. A counter that
+decreased (nfsd reclaimed the idle record and a new one started at zero) counts
+as zero, never negative. Users seen for the first time have no rate yet.
+
+Provenance: `LIVE` when `nfsstat` exited 0 and either returned the marker
+sentence (zero users) or an `NFS Active User Info` section; `UNAVAILABLE` when
+the command failed (for example `nfssvc failed: Operation not permitted` under
+a MAC policy) or returned JSON without that section. `UNAVAILABLE` is displayed
+as such with the reason and is never rendered as zero activity.
+
+Privacy: the Attribution view masks addresses to their network prefix
+(`192.0.·.·`, `2001:db8:…`) unless “Show full client addresses” is enabled;
+alert text always uses the masked form. Retries are **not** reported per user
+by macOS (`nfsstat -u` exposes requests, bytes and idle time only); retry
+pressure remains a client-wide figure (`nfs.rpc.retries`).
+
 ## Quota
 
 `quota -uv` is run for the current user. Recognized filesystem rows use the first
@@ -157,11 +194,19 @@ Review it before publishing screenshots.
 | `nfs.mount.dead` | A `LIVE` mount record carries the kernel flag `dead` | Critical |
 | `nfs.mount.not_responding` | A `LIVE` mount record carries `not responding` (and not `dead`) | Critical |
 | `nfs.mount.recovery` | A `LIVE` mount record carries `recovery` only | Warning |
+| `nfs.user.write_burst` | One NFS user's write rate over the last interval is ≥ the write-burst threshold (default 100 MB/s; Settings 10–1,000 MB/s) | Warning |
+| `nfs.user.request_burst` | One NFS user's request rate over the last interval is ≥ the request-burst threshold (default 1,000 requests/s; Settings 100–10,000) | Warning |
 
 One mount raises at most one mount-state alert per refresh (`dead` outranks `not
 responding`, which outranks `recovery`). `UNAVAILABLE` mount records raise
 nothing. Mount-state alerts carry `relatedVolumeID` of the volume with the same
 mount point.
+
+User-burst comparisons are `>=` and apply per `export|user@address` record; a
+single user can raise both burst alerts in the same refresh. The alert text
+names the user, export and masked address. The thresholds are heuristics for
+“look at this now”, not proof of abuse; LumeFS never throttles or disconnects a
+client.
 
 `Not Supported`, `Unknown` and empty SMART values raise no alert: they mean the
 device or bridge exposes no SMART data, not that the device is failing. A SMART

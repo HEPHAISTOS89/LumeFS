@@ -289,6 +289,141 @@ struct NFSMountInfo: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+/// State of the local NFS server (`nfsd status`, an unprivileged command).
+enum NFSServerState: String, Codable, Sendable {
+    case running
+    case notRunning
+    case unknown
+
+    var label: String {
+        switch self {
+        case .running: "nfsd running"
+        case .notRunning: "nfsd not running"
+        case .unknown: "nfsd state unknown"
+        }
+    }
+}
+
+/// One `user@address` record under one export from `nfsstat -u` (server side).
+///
+/// Counters are cumulative for the lifetime of the kernel's active-user node, which
+/// nfsd reclaims after an idle period; a reclaimed and recreated node restarts at
+/// zero. Rates therefore use non-negative deltas between consecutive LIVE samples.
+struct NFSUserActivity: Identifiable, Codable, Hashable, Sendable {
+    let id: String
+    let export: String
+    let user: String
+    let uid: UInt32?
+    let address: String
+    let requests: UInt64
+    let readBytes: UInt64
+    let writeBytes: UInt64
+    let idleSeconds: TimeInterval?
+    let capturedAt: Date
+    let provenance: DataProvenance
+
+    /// Keeps the network prefix so an operator can still recognize a subnet
+    /// while screenshots and exports do not carry a full client address.
+    var maskedAddress: String {
+        Self.mask(address)
+    }
+
+    static func mask(_ address: String) -> String {
+        if address.contains(":") {
+            let groups = address.split(separator: ":", omittingEmptySubsequences: false)
+            let kept = groups.prefix(2).map(String.init).joined(separator: ":")
+            return kept.isEmpty ? "…" : "\(kept):…"
+        }
+        let octets = address.split(separator: ".")
+        guard octets.count == 4 else { return address.isEmpty ? "unknown" : "…" }
+        return "\(octets[0]).\(octets[1]).·.·"
+    }
+}
+
+struct NFSUserActivitySnapshot: Codable, Hashable, Sendable {
+    let users: [NFSUserActivity]
+    let serverState: NFSServerState
+    let capturedAt: Date
+    let provenance: DataProvenance
+    let message: String?
+
+    static let unavailable = NFSUserActivitySnapshot(
+        users: [],
+        serverState: .unknown,
+        capturedAt: .distantPast,
+        provenance: .unavailable,
+        message: "Per-user NFS activity has not been collected."
+    )
+
+    static func unavailable(
+        message: String,
+        serverState: NFSServerState,
+        at date: Date
+    ) -> NFSUserActivitySnapshot {
+        NFSUserActivitySnapshot(
+            users: [],
+            serverState: serverState,
+            capturedAt: date,
+            provenance: .unavailable,
+            message: message
+        )
+    }
+}
+
+/// Per-user rates derived from two consecutive LIVE `NFSUserActivitySnapshot`s.
+struct NFSUserActivityRate: Identifiable, Hashable, Sendable {
+    let activity: NFSUserActivity
+    let intervalSeconds: Double
+    let requestsPerSecond: Double
+    let readBytesPerSecond: Double
+    let writeBytesPerSecond: Double
+
+    var id: String { activity.id }
+
+    /// Users present in both samples get a rate; counter decreases count as zero.
+    static func rates(
+        current: NFSUserActivitySnapshot,
+        previous: NFSUserActivitySnapshot?
+    ) -> [NFSUserActivityRate] {
+        guard current.provenance == .live,
+              let previous, previous.provenance == .live else { return [] }
+        let interval = current.capturedAt.timeIntervalSince(previous.capturedAt)
+        guard interval > 0 else { return [] }
+        let earlier = Dictionary(previous.users.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+
+        return current.users.compactMap { user in
+            guard let before = earlier[user.id] else { return nil }
+            func delta(_ now: UInt64, _ then: UInt64) -> Double {
+                now >= then ? Double(now - then) : 0
+            }
+            return NFSUserActivityRate(
+                activity: user,
+                intervalSeconds: interval,
+                requestsPerSecond: delta(user.requests, before.requests) / interval,
+                readBytesPerSecond: delta(user.readBytes, before.readBytes) / interval,
+                writeBytesPerSecond: delta(user.writeBytes, before.writeBytes) / interval
+            )
+        }
+    }
+}
+
+/// Deterministic per-user burst thresholds. Defaults: 100 MB/s written or 1,000
+/// requests/s sustained over one collection interval. Settings can change them.
+struct NFSUserAlertThresholds: Equatable, Sendable {
+    let writeBytesPerSecond: Double
+    let requestsPerSecond: Double
+
+    static let `default` = NFSUserAlertThresholds(
+        writeBytesPerSecond: 100_000_000,
+        requestsPerSecond: 1_000
+    )
+
+    init(writeBytesPerSecond: Double, requestsPerSecond: Double) {
+        self.writeBytesPerSecond = max(1_000_000, writeBytesPerSecond)
+        self.requestsPerSecond = max(10, requestsPerSecond)
+    }
+}
+
 struct QuotaSnapshot: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let subject: String
@@ -401,6 +536,8 @@ struct SystemSnapshot: Sendable {
     let deviceSamples: [DeviceIOSample]
     let nfsMetrics: NFSClientMetrics
     let nfsMounts: [NFSMountInfo]
+    let nfsUsers: NFSUserActivitySnapshot
+    let nfsUserRates: [NFSUserActivityRate]
     let quotas: [QuotaSnapshot]
     let alerts: [MonitoringAlert]
     let capturedAt: Date
@@ -410,6 +547,8 @@ struct SystemSnapshot: Sendable {
         deviceSamples: [DeviceIOSample],
         nfsMetrics: NFSClientMetrics,
         nfsMounts: [NFSMountInfo] = [],
+        nfsUsers: NFSUserActivitySnapshot = .unavailable,
+        nfsUserRates: [NFSUserActivityRate] = [],
         quotas: [QuotaSnapshot],
         alerts: [MonitoringAlert],
         capturedAt: Date
@@ -418,6 +557,8 @@ struct SystemSnapshot: Sendable {
         self.deviceSamples = deviceSamples
         self.nfsMetrics = nfsMetrics
         self.nfsMounts = nfsMounts
+        self.nfsUsers = nfsUsers
+        self.nfsUserRates = nfsUserRates
         self.quotas = quotas
         self.alerts = alerts
         self.capturedAt = capturedAt

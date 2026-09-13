@@ -19,6 +19,13 @@ struct LumeFSApp: App {
                     Task { await store.refreshNow() }
                 }
                 .keyboardShortcut("r", modifiers: [.command])
+                Divider()
+                ForEach(Array(AppSection.allCases.enumerated()), id: \.element) { index, section in
+                    Button("Show \(section.rawValue)") {
+                        store.selectedSection = section
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: [.command])
+                }
             }
         }
 

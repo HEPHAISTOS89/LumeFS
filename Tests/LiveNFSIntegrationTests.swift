@@ -52,6 +52,22 @@ final class LiveNFSIntegrationTests: XCTestCase {
         XCTAssertFalse(metrics.pNFSObserved)
     }
 
+    func testLiveActiveUsersAttributeTheLabReadToLoopbackClient() async throws {
+        let mount = try requiredLabMount
+        _ = try Data(contentsOf: URL(fileURLWithPath: mount).appendingPathComponent("README.txt"))
+
+        let snapshot = await NFSActiveUserCollector(
+            commandRunner: SystemCommandRunner()
+        ).collect()
+
+        XCTAssertEqual(snapshot.provenance, .live, snapshot.message ?? "")
+        XCTAssertEqual(snapshot.serverState, .running)
+        let loopback = snapshot.users.filter { $0.address == "127.0.0.1" }
+        XCTAssertFalse(loopback.isEmpty, "expected the lab read to appear as a 127.0.0.1 client: \(snapshot.users)")
+        XCTAssertTrue(loopback.allSatisfy { $0.export.hasSuffix("/export") }, "\(loopback.map(\.export))")
+        XCTAssertTrue(loopback.contains { $0.requests > 0 })
+    }
+
     func testLiveMountInformationDescribesTheLabMount() async throws {
         let mount = try requiredLabMount
         let volumes = MountCollector().collect().filter { $0.mountPoint == mount }

@@ -9,6 +9,8 @@ actor MonitoringEngine {
     private var cachedVolumes: [VolumeSnapshot] = []
     private var cachedNFS = NFSClientMetrics.unavailable
     private var cachedNFSMounts: [NFSMountInfo] = []
+    private var cachedNFSUsers = NFSUserActivitySnapshot.unavailable
+    private var cachedNFSUserRates: [NFSUserActivityRate] = []
     private var cachedQuotas: [QuotaSnapshot] = []
     private var previousNFS: NFSClientMetrics?
     private var refreshCount = 0
@@ -36,6 +38,17 @@ actor MonitoringEngine {
             cachedNFS = await NFSCollector(
                 commandRunner: commandRunner
             ).collect(at: now)
+
+            // Same cadence as the client counters: per-user rates are deltas over
+            // this three-second window, which is what the burst thresholds refer to.
+            let previousUsers = cachedNFSUsers
+            cachedNFSUsers = await NFSActiveUserCollector(
+                commandRunner: commandRunner
+            ).collect(at: now)
+            cachedNFSUserRates = NFSUserActivityRate.rates(
+                current: cachedNFSUsers,
+                previous: previousUsers
+            )
         }
 
         if cachedQuotas.isEmpty || refreshCount.isMultiple(of: 30) {
@@ -53,7 +66,9 @@ actor MonitoringEngine {
             previousNFS: previousNFS,
             capacityThresholds: thresholds,
             quotas: cachedQuotas,
-            nfsMounts: cachedNFSMounts
+            nfsMounts: cachedNFSMounts,
+            nfsUserRates: cachedNFSUserRates,
+            nfsUserThresholds: nfsUserThresholds()
         )
 
         return SystemSnapshot(
@@ -61,6 +76,8 @@ actor MonitoringEngine {
             deviceSamples: currentSamples,
             nfsMetrics: cachedNFS,
             nfsMounts: cachedNFSMounts,
+            nfsUsers: cachedNFSUsers,
+            nfsUserRates: cachedNFSUserRates,
             quotas: cachedQuotas,
             alerts: alerts,
             capturedAt: now
@@ -75,6 +92,17 @@ actor MonitoringEngine {
         return CapacityThresholds(
             warningFreeFraction: warningPercent / 100,
             criticalFreeFraction: criticalPercent / 100
+        )
+    }
+
+    private func nfsUserThresholds() -> NFSUserAlertThresholds {
+        let defaults = UserDefaults.standard
+        let writeMegabytesPerSecond = defaults.object(forKey: "nfsUserWriteBurstMBps") as? Double ?? 100
+        let requestsPerSecond = defaults.object(forKey: "nfsUserRequestBurstPerSecond") as? Double ?? 1_000
+
+        return NFSUserAlertThresholds(
+            writeBytesPerSecond: writeMegabytesPerSecond * 1_000_000,
+            requestsPerSecond: requestsPerSecond
         )
     }
 }

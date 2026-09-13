@@ -8,11 +8,14 @@ struct AlertRuleEngine: Sendable {
         previousNFS: NFSClientMetrics?,
         capacityThresholds: CapacityThresholds = .default,
         quotas: [QuotaSnapshot] = [],
-        nfsMounts: [NFSMountInfo] = []
+        nfsMounts: [NFSMountInfo] = [],
+        nfsUserRates: [NFSUserActivityRate] = [],
+        nfsUserThresholds: NFSUserAlertThresholds = .default
     ) -> [MonitoringAlert] {
         var alerts = volumeAlerts(volumes, thresholds: capacityThresholds)
         alerts.append(contentsOf: deviceAlerts(samples))
         alerts.append(contentsOf: nfsMountAlerts(nfsMounts, volumes: volumes))
+        alerts.append(contentsOf: nfsUserAlerts(nfsUserRates, thresholds: nfsUserThresholds))
         alerts.append(contentsOf: quotas.compactMap { quota in
             guard let severity = quota.limitSeverity else { return nil }
             return MonitoringAlert(
@@ -196,6 +199,50 @@ struct AlertRuleEngine: Sendable {
                 )
             }
             return nil
+        }
+    }
+
+    /// Server-side per-user bursts from `nfsstat -u` deltas. Alert text carries the
+    /// masked client address; the full address stays in the Attribution view.
+    private func nfsUserAlerts(
+        _ rates: [NFSUserActivityRate],
+        thresholds: NFSUserAlertThresholds
+    ) -> [MonitoringAlert] {
+        rates.flatMap { rate -> [MonitoringAlert] in
+            guard rate.activity.provenance == .live else { return [] }
+            let who = "\(rate.activity.user) from \(rate.activity.maskedAddress)"
+            let window = rate.intervalSeconds.formatted(.number.precision(.fractionLength(0...1)))
+            var alerts: [MonitoringAlert] = []
+
+            if rate.writeBytesPerSecond >= thresholds.writeBytesPerSecond {
+                alerts.append(MonitoringAlert(
+                    id: "nfs-user-write-\(rate.id)",
+                    ruleID: "nfs.user.write_burst",
+                    severity: .warning,
+                    title: "NFS user write burst",
+                    message: "\(who) is writing \(MetricFormatter.throughput(rate.writeBytesPerSecond)) to \(rate.activity.export).",
+                    evidence: "\(MetricFormatter.throughput(rate.writeBytesPerSecond)) over \(window) s; threshold \(MetricFormatter.throughput(thresholds.writeBytesPerSecond))",
+                    recommendation: "Confirm this job is expected. If not, contact the user before the export fills up; LumeFS does not stop clients.",
+                    relatedVolumeID: nil,
+                    createdAt: rate.activity.capturedAt,
+                    provenance: .live
+                ))
+            }
+            if rate.requestsPerSecond >= thresholds.requestsPerSecond {
+                alerts.append(MonitoringAlert(
+                    id: "nfs-user-requests-\(rate.id)",
+                    ruleID: "nfs.user.request_burst",
+                    severity: .warning,
+                    title: "NFS user request burst",
+                    message: "\(who) is issuing \(rate.requestsPerSecond.formatted(.number.precision(.fractionLength(0)))) requests/s on \(rate.activity.export).",
+                    evidence: "\(rate.requestsPerSecond.formatted(.number.precision(.fractionLength(0)))) requests/s over \(window) s; threshold \(thresholds.requestsPerSecond.formatted(.number.precision(.fractionLength(0))))",
+                    recommendation: "Metadata storms (many small files, retries in a loop) look like this. Check the client's job before it degrades the server.",
+                    relatedVolumeID: nil,
+                    createdAt: rate.activity.capturedAt,
+                    provenance: .live
+                ))
+            }
+            return alerts
         }
     }
 

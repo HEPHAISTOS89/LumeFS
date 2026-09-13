@@ -5,16 +5,19 @@ enum AppSection: String, CaseIterable, Identifiable {
     case overview = "Overview"
     case volumes = "Volumes"
     case performance = "Performance"
+    case attribution = "Attribution"
     case activity = "Activity"
     case alerts = "Alerts"
 
     var id: String { rawValue }
 
-    var navigationAsset: String {
+    /// Pinned Lucide pictogram, or nil to use the SF Symbol in `symbolName`.
+    var navigationAsset: String? {
         switch self {
         case .overview: "Lucide-gauge"
         case .volumes: "Lucide-hard-drive"
         case .performance: "Lucide-chart-no-axes-combined"
+        case .attribution: nil
         case .activity: "Lucide-clock-arrow-left"
         case .alerts: "Lucide-bell"
         }
@@ -25,6 +28,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         case .overview: "gauge.with.dots.needle.50percent"
         case .volumes: "internaldrive"
         case .performance: "chart.xyaxis.line"
+        case .attribution: "person.2"
         case .activity: "clock.arrow.circlepath"
         case .alerts: "bell.badge"
         }
@@ -56,6 +60,8 @@ final class MonitoringStore {
     private(set) var ioHistory: [DeviceIOSample] = []
     private(set) var nfsMetrics = NFSClientMetrics.unavailable
     private(set) var nfsMounts: [NFSMountInfo] = []
+    private(set) var nfsUsers = NFSUserActivitySnapshot.unavailable
+    private(set) var nfsUserRates: [NFSUserActivityRate] = []
     private(set) var pNFSReplayMetrics: NFSClientMetrics?
     private(set) var pNFSReplayError: String?
     private(set) var quotas: [QuotaSnapshot] = []
@@ -281,6 +287,8 @@ final class MonitoringStore {
         latestDeviceSamples = snapshot.deviceSamples
         nfsMetrics = snapshot.nfsMetrics
         nfsMounts = snapshot.nfsMounts
+        nfsUsers = snapshot.nfsUsers
+        nfsUserRates = snapshot.nfsUserRates
         quotas = snapshot.quotas
         alerts = snapshot.alerts
         lastUpdated = snapshot.capturedAt

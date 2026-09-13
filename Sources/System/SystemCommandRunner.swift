@@ -4,6 +4,7 @@ import Darwin
 enum SystemExecutable: String, Sendable {
     case diskutil = "/usr/sbin/diskutil"
     case nfsstat = "/usr/bin/nfsstat"
+    case nfsd = "/sbin/nfsd"
     case quota = "/usr/bin/quota"
 }
 
@@ -142,10 +143,17 @@ actor SystemCommandRunner {
             }
         case .nfsstat:
             let isClientCounters = arguments == ["-f", "JSON", "-c"]
+            let isActiveUsers = arguments == ["-u", "-n", "net", "-f", "JSON"]
             let isSingleMountInfo = arguments.count == 4
                 && Array(arguments[0..<3]) == ["-m", "-f", "JSON"]
                 && arguments[3].hasPrefix("/")
-            guard isClientCounters || isSingleMountInfo else {
+            guard isClientCounters || isActiveUsers || isSingleMountInfo else {
+                throw CommandRunnerError.invalidArgument
+            }
+        case .nfsd:
+            // `status` is the only nfsd subcommand documented as unprivileged; every
+            // other subcommand changes service state and stays rejected.
+            guard arguments == ["status"] else {
                 throw CommandRunnerError.invalidArgument
             }
         case .quota:

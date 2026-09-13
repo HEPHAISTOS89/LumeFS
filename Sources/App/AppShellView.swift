@@ -9,12 +9,20 @@ struct AppShellView: View {
                 Label {
                     Text(section.rawValue)
                 } icon: {
-                    Image(section.navigationAsset)
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-                        .accessibilityHidden(true)
+                    Group {
+                        if let asset = section.navigationAsset {
+                            Image(asset)
+                                .renderingMode(.template)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            Image(systemName: section.symbolName)
+                                .resizable()
+                                .scaledToFit()
+                        }
+                    }
+                    .frame(width: 18, height: 18)
+                    .accessibilityHidden(true)
                 }
                     .tag(section)
             }
@@ -81,6 +89,8 @@ struct AppShellView: View {
             VolumesView(store: store)
         case .performance:
             PerformanceView(store: store)
+        case .attribution:
+            AttributionView(store: store)
         case .activity:
             ActivityView(store: store)
         case .alerts:

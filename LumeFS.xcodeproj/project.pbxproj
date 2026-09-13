@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */; };
+		9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0E498AB63CAEC2645E1245 /* AttributionView.swift */; };
+		71D915B014BCD80742E1D418 /* NFSActiveUserCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */; };
 		77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */; };
 		B6EFA120131B4FDBBBCAE03A /* NFSMountCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */; };
 		1C506BBC5E5D43F3BD0912A0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 94A59371FB963B8EFA4A62B5 /* Assets.xcassets */; };
@@ -60,6 +63,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollectorTests.swift; sourceTree = "<group>"; };
+		4F0E498AB63CAEC2645E1245 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
+		703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollector.swift; sourceTree = "<group>"; };
 		EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollectorTests.swift; sourceTree = "<group>"; };
 		5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSMountCollector.swift; sourceTree = "<group>"; };
 		095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveNFSIntegrationTests.swift; sourceTree = "<group>"; };
@@ -116,6 +122,7 @@
 				095CD791E5DAFAFE3D31D417 /* LiveNFSIntegrationTests.swift */,
 				2EC72A360D3AA0EF39308D50 /* MetricFormatterTests.swift */,
 				6772DEDC47B1D25CB8952051 /* MonitoringStoreTests.swift */,
+				B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */,
 				D249A24813F73B11F9CDD27F /* NFSCollectorTests.swift */,
 				EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */,
 				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
@@ -133,6 +140,7 @@
 				3883C4245505A308EED90747 /* DiskBenchmark.swift */,
 				702F3007C5BEA8CEEDB14974 /* FileActivityCollector.swift */,
 				DBE4ECC9BA3D743F80218A66 /* MountCollector.swift */,
+				703475A85024EB1D7C577589 /* NFSActiveUserCollector.swift */,
 				875DCB89A09565F6E509D9C9 /* NFSCollector.swift */,
 				5C5A3F84E0B9E4BA1DECB1E2 /* NFSMountCollector.swift */,
 				847C638EFE1CD90BFA809EFC /* QuotaCollector.swift */,
@@ -241,6 +249,7 @@
 			children = (
 				834E5BECCD42D30BB2F05C01 /* ActivityView.swift */,
 				9DCA8AF6B08E84CD77B64226 /* AlertsView.swift */,
+				4F0E498AB63CAEC2645E1245 /* AttributionView.swift */,
 				31104582C1D6B0AEBAF87C95 /* OverviewView.swift */,
 				1DEB99EC1ABF54064672256B /* PerformanceView.swift */,
 				744C03F1BB4954C8F902F3C9 /* SettingsView.swift */,
@@ -345,6 +354,7 @@
 				3E2D36AD57182D94D4B7A2FE /* LiveNFSIntegrationTests.swift in Sources */,
 				52A50D3852DB2A94F4C28289 /* MetricFormatterTests.swift in Sources */,
 				B9497211E4AAAFB510857424 /* MonitoringStoreTests.swift in Sources */,
+				FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */,
 				67ACD243201DAA75B44F8D6F /* NFSCollectorTests.swift in Sources */,
 				77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */,
 				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
@@ -362,6 +372,7 @@
 				25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */,
 				35100C74ED82A8FE3D3D5419 /* AlertsView.swift in Sources */,
 				E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */,
+				9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */,
 				A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */,
 				1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */,
 				52266E8E0916F536F86B5701 /* DiskBenchmark.swift in Sources */,
@@ -372,6 +383,7 @@
 				800871247CCEF24626B992ED /* MonitoringModels.swift in Sources */,
 				27A55461F5341EBA86B1DE78 /* MonitoringStore.swift in Sources */,
 				5885AD3AC01810D915047CD0 /* MountCollector.swift in Sources */,
+				71D915B014BCD80742E1D418 /* NFSActiveUserCollector.swift in Sources */,
 				D17F080862D475016F9DC490 /* NFSCollector.swift in Sources */,
 				B6EFA120131B4FDBBBCAE03A /* NFSMountCollector.swift in Sources */,
 				74FCA92B7589300F54E58464 /* OverviewView.swift in Sources */,

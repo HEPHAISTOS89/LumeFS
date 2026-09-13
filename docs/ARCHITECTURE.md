@@ -18,6 +18,7 @@ MonitoringEngine (actor)
     ├── BlockIOCollector (actor) ─── IOKit IOMedia statistics
     ├── NFSCollector ─────────────── nfsstat -f JSON -c
     ├── NFSMountCollector ────────── nfsstat -m -f JSON <mount point>
+    ├── NFSActiveUserCollector ───── nfsstat -u -n net -f JSON, nfsd status
     ├── QuotaCollector ───────────── quota -uv
     └── AlertRuleEngine ──────────── deterministic rules
 
@@ -33,12 +34,13 @@ third-party runtime package in the current project.
 
 ## UI and state
 
-`LumeFSApp` creates one `MonitoringStore`. `AppShellView` exposes five
+`LumeFSApp` creates one `MonitoringStore`. `AppShellView` exposes six
 navigation sections:
 
 - Overview
 - Volumes, including an in-place volume detail pane
 - Performance
+- Attribution (which NFS users drive activity on this server)
 - Activity
 - Alerts, including an in-place evidence pane
 
@@ -131,6 +133,20 @@ apple-oss-distributions/NFS (`nfsstat.c`, `printer.c`); unit fixtures are derive
 from that source and anonymized, and the opt-in loopback lab exercises the live
 path.
 
+### NFSActiveUserCollector
+
+Every NFS interval (3 cycles) the collector runs `/sbin/nfsd status` to learn
+whether this Mac serves NFS, then `/usr/bin/nfsstat -u -n net -f JSON`. Output
+is parsed into `NFSUserActivitySnapshot` (one `NFSUserActivity` per
+`export|user@address`). The engine keeps the previous `LIVE` snapshot and
+derives `NFSUserActivityRate` deltas, which feed the `nfs.user.*` alert rules
+and the Attribution view. The marker sentence `No NFS active user statistics
+found.` is a `LIVE` empty result with a server-state-aware message; command
+failure or JSON without the `NFS Active User Info` section is `UNAVAILABLE`
+with the reason. The kernel call behind `-u` (`nfssvc(NFSSVC_USERSTATS)`) does
+not require root; `nfsd status` is Apple's documented unprivileged subcommand.
+Client addresses are kept numeric (`-n net`) and masked in the UI by default.
+
 ### QuotaCollector
 
 The collector executes `/usr/bin/quota -uv`. It recognizes ordinary and wrapped
@@ -204,7 +220,8 @@ history database, or notification delivery subsystem.
 
 `SystemCommandRunner` uses Foundation `Process` with an absolute executable URL
 and a separate argument array. It does not invoke a shell. The executable enum
-contains only `/usr/sbin/diskutil`, `/usr/bin/nfsstat`, and `/usr/bin/quota`.
+contains only `/usr/sbin/diskutil`, `/usr/bin/nfsstat`, `/sbin/nfsd` (the
+unprivileged `status` subcommand only), and `/usr/bin/quota`.
 
 Current arguments are constructed by collectors. The runner rejects empty,
 control-character, and over-4,096-byte arguments; enforces exact argument shapes
@@ -214,7 +231,8 @@ SIGKILL after 200 ms if needed; and rejects stdout or stderr larger than one MiB
 Mount points discovered from the operating system are the only variable
 arguments: they reach `diskutil info -plist <path>` and
 `nfsstat -m -f JSON <path>` and must begin with `/`. Every other argument list is
-matched exactly (`nfsstat -f JSON -c`, `quota -uv`).
+matched exactly (`nfsstat -f JSON -c`, `nfsstat -u -n net -f JSON`,
+`nfsd status`, `quota -uv`).
 
 The runner does not canonicalize that absolute mount path. Output-size
 enforcement occurs after process exit. Those remaining gaps matter if future UI,

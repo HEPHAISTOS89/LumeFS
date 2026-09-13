@@ -46,6 +46,10 @@ alert that used it.
 - Per-mount NFS information (server, export, version, transport, mount
   parameters, kernel `dead` / `not responding` / `recovery` flags) from
   `nfsstat -m`, with alerts driven only by those kernel flags.
+- Per-user NFS attribution on a Mac that runs `nfsd` (`nfsstat -u`): user,
+  export, masked client address, request and byte deltas, idle time, plus
+  deterministic write-burst and request-burst alerts with documented, adjustable
+  thresholds. Shown as unavailable, never simulated, on a pure client.
 - Current-user quota rows parsed into byte limits when recognized, with raw
   evidence fallback and an explicit unavailable state.
 - A 128 MiB bounded temporary-file benchmark with explicit `BENCHMARK`
@@ -90,6 +94,7 @@ LumeFS uses no third-party runtime dependencies.
 | Block I/O | IOKit `IOMedia` statistics | Whole devices, not individual processes or files |
 | NFS client metrics | `/usr/bin/nfsstat -f JSON -c` | System-wide cumulative client counters |
 | NFS mount information | `/usr/bin/nfsstat -m -f JSON <mount point>` | One discovered NFS mount at a time: server, export, version, transport, parameters, kernel status flags |
+| NFS users (server side) | `/usr/bin/nfsstat -u -n net -f JSON`, `/sbin/nfsd status` | Per user and client address, per export, on a Mac that runs `nfsd`; requests, bytes, idle; deltas over 3 s |
 | Quota status | `/usr/bin/quota -uv` | Current user; recognized local/remote rows plus raw fallback |
 
 The refresh loop runs once per second. Block I/O is sampled each refresh; mounts,
@@ -162,7 +167,7 @@ its cleanup step afterward.
   system storage interfaces. Hardened Runtime is enabled.
 - System commands are launched with `Process.executableURL` and argument arrays,
   not through a shell. The executable set is limited to `diskutil`, `nfsstat`,
-  and `quota`.
+  `nfsd` (`status` only) and `quota`.
 - The runner enforces a per-command argument shape, rejects control characters,
   uses a minimal system-only environment, terminates after five seconds with
   SIGTERM/SIGKILL escalation, and caps stdout/stderr at one MiB each.
