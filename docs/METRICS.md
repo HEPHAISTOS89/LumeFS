@@ -247,6 +247,58 @@ warning level, while the UI exposes narrower 10–40% and 2–20% ranges.
 Device-error counters are cumulative. A non-zero historical counter can keep an
 alert active even when no new error occurred during the latest interval.
 
+### Alert lifecycle and history
+
+Rules produce the current alert set; the history records occurrences of it.
+
+| State | Meaning | Set by |
+| --- | --- | --- |
+| `active` | The alert id is present in the latest snapshot | First refresh that reports the id (`raisedAt`) |
+| `acknowledged` | Still present, and someone pressed Acknowledge | The user (`acknowledgedAt`); the rule keeps firing |
+| `cleared` | The id is absent from a later snapshot | The refresh that no longer reports it (`clearedAt`) |
+
+- An entry is keyed by alert id plus raise time, so an id that clears and comes
+  back is a new entry; the earlier one stays `cleared`.
+- While an entry is open its payload (severity, message, evidence) is replaced
+  by the latest snapshot's version and `lastSeenAt` advances; `raisedAt` never
+  changes.
+- Cleared beats acknowledged: an acknowledged alert that stops firing is shown
+  as `cleared` with both timestamps kept.
+- The ledger keeps at most 500 entries. When full, the oldest `cleared`
+  entries are dropped first; open entries are never dropped.
+- The file is `~/Library/Application Support/LumeFS/alert-history.json`
+  (ISO-8601 dates, second precision). It is written on raise, clear,
+  acknowledge, “Clear Closed” and pause, not every second, so `lastSeenAt` on
+  disk can lag the UI until one of those events. An alert still open at quit is
+  cleared at the first refresh after relaunch, with that later time.
+- Clear times are refresh times, at most one collection cycle after the
+  condition ended. There is no acknowledgement expiry or snooze.
+
+### Notifications
+
+Off by default. When enabled in Settings, LumeFS posts a macOS notification
+for newly raised `critical` entries only, with these anti-spam rules: one
+notification per refresh (several titles are joined, three at most, then “and
+N more”), and a given alert id is announced at most once per 10 minutes even if
+it clears and is raised again. Warnings and notices never notify. The
+notification body is the alert title; it never includes evidence, paths,
+device names, quota output or user names. macOS suppresses banners while
+LumeFS is the active app.
+
+### Snapshot export
+
+File › Export Snapshot as JSON… (⇧⌘E) or as CSV… (⌥⇧⌘E) writes the latest
+applied snapshot with `exportedAt`, `appVersion`, `addressesMasked`, and every
+record's own `capturedAt` and provenance. JSON is the full model. CSV has one
+row per measurement: `captured_at,category,identifier,metric,value,unit,provenance`
+with categories `export`, `volume`, `device`, `nfs_client`, `nfs_mount`,
+`nfs_user`, `process`, `quota`, `alert` and `alert_history`. Byte values are
+integers, rates keep three decimals, non-finite numbers export as empty
+fields, and `.distantPast` timestamps (uncollected records) appear as year 0001.
+NFS client addresses are masked to their network prefix unless “Show full NFS
+client addresses” is on; alert text is always masked. Exporting re-collects
+nothing: the file is exactly what the UI showed.
+
 ## Workload placement estimate
 
 The user chooses 8, 16, 32, 64, or 128 GiB. The calculator uses binary GiB:
@@ -294,6 +346,8 @@ as requiring a rescan rather than treated as complete history.
 - Quota cache: up to approximately 30 cycles old.
 - I/O history: at most 900 aggregated samples.
 - Activity history: at most 200 in-memory session events.
+- Alert history: at most 500 entries, persisted in Application Support across
+  launches; open entries are never trimmed.
 
 These are scheduling intentions, not real-time deadlines. System commands have a
 five-second limit, and snapshot timestamps are captured before collection

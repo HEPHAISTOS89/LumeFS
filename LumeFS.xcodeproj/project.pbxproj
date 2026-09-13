@@ -7,6 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7C7C7A83FCBD9B11057CC57E /* SnapshotExporterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */; };
+		B84F14A12D6DBCC71DBE7AEA /* AlertHistoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */; };
+		BF15D855489040841D629CAF /* SnapshotExportCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */; };
+		A12F7404B17FD4E8F3554EBF /* CriticalAlertNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */; };
+		FFE7F674DA2728B66F5DDAFF /* CriticalAlertPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */; };
+		BBA03EE5E9EA243C8D38CEB7 /* SnapshotExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */; };
+		92FAD86585B9DB1F01F4DC93 /* AlertHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C28635F938255F3F50D737 /* AlertHistory.swift */; };
 		494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */; };
 		6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */; };
 		FFACAFD139A0B67DC472059B /* NFSActiveUserCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */; };
@@ -65,6 +72,13 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporterTests.swift; sourceTree = "<group>"; };
+		9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistoryTests.swift; sourceTree = "<group>"; };
+		CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExportCoordinator.swift; sourceTree = "<group>"; };
+		11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertNotifier.swift; sourceTree = "<group>"; };
+		699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CriticalAlertPlanner.swift; sourceTree = "<group>"; };
+		453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnapshotExporter.swift; sourceTree = "<group>"; };
+		83C28635F938255F3F50D737 /* AlertHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlertHistory.swift; sourceTree = "<group>"; };
 		0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollectorTests.swift; sourceTree = "<group>"; };
 		1B64162BABE344DC5C1E2E22 /* ProcessIOCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessIOCollector.swift; sourceTree = "<group>"; };
 		B24BAFDB23775CC7691B808F /* NFSActiveUserCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFSActiveUserCollectorTests.swift; sourceTree = "<group>"; };
@@ -118,6 +132,7 @@
 		00FE5470A4026A4921A93FEA /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				9A0AC09E645A90B969CFE05B /* AlertHistoryTests.swift */,
 				254E448E2700BD961AF86D83 /* AlertRuleEngineTests.swift */,
 				E1F3EE01FD625001C182FAA5 /* APFSMetadataCollectorTests.swift */,
 				834D4CE8FC9EEAB810C3D49A /* BenchmarkGuardTests.swift */,
@@ -131,6 +146,7 @@
 				EEBF36CB59D0C5103CA3ACBF /* NFSMountCollectorTests.swift */,
 				0C1E70FADC2BBB4E3FB6E2B7 /* ProcessIOCollectorTests.swift */,
 				E52F65059B3F764326636571 /* QuotaCollectorTests.swift */,
+				41D932B95DFAF24EAA42C5C9 /* SnapshotExporterTests.swift */,
 				52F6E3C4EF59166CA44CE97D /* SystemCommandRunnerTests.swift */,
 				52F23349DF4C8FFE0EBFAA3A /* WorkloadReadinessCalculatorTests.swift */,
 			);
@@ -158,8 +174,11 @@
 		2093FAAE0CF6E5E20BF3AA41 /* Monitoring */ = {
 			isa = PBXGroup;
 			children = (
+				83C28635F938255F3F50D737 /* AlertHistory.swift */,
 				FF476F1A33C6E7D30C19E29E /* AlertRuleEngine.swift */,
+				699C379C3FDB4E04A1768DC0 /* CriticalAlertPlanner.swift */,
 				BB18B6A96D29232E75BE793B /* MonitoringEngine.swift */,
+				453688B59C82098D68CE4DE5 /* SnapshotExporter.swift */,
 				96074ADECAB423986DB409E1 /* WorkloadReadinessCalculator.swift */,
 			);
 			path = Monitoring;
@@ -228,8 +247,10 @@
 			isa = PBXGroup;
 			children = (
 				B0EEA74103D2B0E37CAFCD59 /* AppShellView.swift */,
+				11C61C07506B6669AE8B010B /* CriticalAlertNotifier.swift */,
 				9410F5952D4211FE68F050D0 /* LumeFSApp.swift */,
 				3DD3925BBDE862CFD547F6B3 /* MonitoringStore.swift */,
+				CD9969370748AF3401FA0F85 /* SnapshotExportCoordinator.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -352,6 +373,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B84F14A12D6DBCC71DBE7AEA /* AlertHistoryTests.swift in Sources */,
 				2E80C6218A4FDA7FF4259173 /* APFSMetadataCollectorTests.swift in Sources */,
 				522468FA8905E601EB7D773F /* AlertRuleEngineTests.swift in Sources */,
 				DE021332B42B32FC4854E86F /* BenchmarkGuardTests.swift in Sources */,
@@ -365,6 +387,7 @@
 				77FE3A5FADB36139DE034555 /* NFSMountCollectorTests.swift in Sources */,
 				494D252699AF748B59845B5E /* ProcessIOCollectorTests.swift in Sources */,
 				52F6F90B51AB38709A21BDE7 /* QuotaCollectorTests.swift in Sources */,
+				7C7C7A83FCBD9B11057CC57E /* SnapshotExporterTests.swift in Sources */,
 				3498296B75DBCECE9C5BEAA6 /* SystemCommandRunnerTests.swift in Sources */,
 				617EA3EF7DD62D3AD6B0BCEE /* WorkloadReadinessCalculatorTests.swift in Sources */,
 			);
@@ -374,6 +397,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92FAD86585B9DB1F01F4DC93 /* AlertHistory.swift in Sources */,
 				4ED918B438A92B86DDD94CF5 /* APFSMetadataCollector.swift in Sources */,
 				B6790B91284C748822CBC71F /* ActivityView.swift in Sources */,
 				25B758F9CF1EA3B9348BA464 /* AlertRuleEngine.swift in Sources */,
@@ -381,6 +405,8 @@
 				E0541CCF873D2AC0576F8B9A /* AppShellView.swift in Sources */,
 				9DF3D71B46DDEC6452381E64 /* AttributionView.swift in Sources */,
 				A9B02DD72B602D5F326D8DA2 /* BlockIOCollector.swift in Sources */,
+				A12F7404B17FD4E8F3554EBF /* CriticalAlertNotifier.swift in Sources */,
+				FFE7F674DA2728B66F5DDAFF /* CriticalAlertPlanner.swift in Sources */,
 				1F29CC5407BD242284024E09 /* DesignSystem.swift in Sources */,
 				52266E8E0916F536F86B5701 /* DiskBenchmark.swift in Sources */,
 				2B2CE870626F7F4E8F5C8EC1 /* FileActivityCollector.swift in Sources */,
@@ -398,6 +424,8 @@
 				6661B57C55CAC085CE9DF6C9 /* ProcessIOCollector.swift in Sources */,
 				72B61317BA340D00E3354904 /* QuotaCollector.swift in Sources */,
 				49DF1BC31B8973D4BBE150C4 /* SettingsView.swift in Sources */,
+				BF15D855489040841D629CAF /* SnapshotExportCoordinator.swift in Sources */,
+				BBA03EE5E9EA243C8D38CEB7 /* SnapshotExporter.swift in Sources */,
 				2A17203FB137638A740DD931 /* SystemCommandRunner.swift in Sources */,
 				48FDB65A7E9E34A5B99473E5 /* VolumesView.swift in Sources */,
 				7D8B1232792E5BF3A092FF04 /* WorkloadReadinessCalculator.swift in Sources */,

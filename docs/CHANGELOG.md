@@ -23,8 +23,22 @@ All notable project changes will be documented here.
 - `SMARTAssessment` classification: `Not Supported`, `Unknown` and empty SMART
   strings are absence of data, only explicit failure wording is Critical, and
   unknown wording is a Notice.
+- Alert history: every alert occurrence is tracked as active → acknowledged →
+  cleared with timestamps, kept across launches in
+  `~/Library/Application Support/LumeFS/alert-history.json` (500 entries, open
+  alerts never trimmed, unreadable files set aside rather than deleted). The
+  Alerts screen gains an Active / History switch, a lifecycle pane, an
+  Acknowledge action and “Clear Closed…” with confirmation.
+- Snapshot export as JSON or CSV from the File menu (⇧⌘E / ⌥⇧⌘E) and the
+  toolbar: the latest snapshot with per-record timestamps and provenance plus
+  the alert history; NFS client addresses masked unless the user opted into
+  full addresses.
+- Opt-in macOS notifications for critical alerts (Settings › Notifications):
+  one notification per refresh, 10-minute per-alert cooldown, alert title only,
+  no permission request until enabled.
 - Fixture tests for NFS mount parsing, SMART classification, IOKit
-  deduplication, and the extended command allowlist.
+  deduplication, the extended command allowlist, alert-history reconciliation
+  and persistence, the notification planner, and JSON/CSV export.
 
 ### Changed
 

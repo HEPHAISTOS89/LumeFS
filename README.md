@@ -66,8 +66,17 @@ alert that used it.
   evidence when live pNFS counters are absent.
 - Capacity, user-quota, storage-error, NFS-timeout, and NFS-retry alerts with evidence and a
   recommended next step.
-- Native SwiftUI views for Overview, Volumes, I/O Performance, Activity, and
-  Alerts, plus a Settings window.
+- Alert history with an active / acknowledged / cleared lifecycle per
+  occurrence, kept across launches in Application Support (500 entries, open
+  alerts never trimmed), with an Acknowledge action that never silences a rule.
+- Snapshot export to JSON or CSV (File menu, ⇧⌘E / ⌥⇧⌘E): every value the UI
+  shows with its own timestamp and provenance, plus the alert history; NFS
+  client addresses masked unless you opted into full addresses.
+- Opt-in macOS notifications for critical alerts only: one per refresh, the
+  same alert at most once per 10 minutes, title only, nothing requested from
+  macOS until you turn it on.
+- Native SwiftUI views for Overview, Volumes, I/O Performance, Attribution,
+  Activity, and Alerts, plus a Settings window.
 
 See [Metrics](docs/METRICS.md) for exact definitions and caveats.
 
@@ -168,7 +177,9 @@ its cleanup step afterward.
 - Collection is local; the source tree contains no analytics or network client.
 - LumeFS does not inspect file contents.
 - Mount paths, device names, quota command output, and the current username can
-  appear in the UI. Do not publish screenshots without reviewing them.
+  appear in the UI, in the alert-history file under Application Support, and in
+  exports you save. Do not publish screenshots or exports without reviewing
+  them. Notifications carry alert titles only.
 - The app is currently built with the App Sandbox disabled because it reads
   system storage interfaces. Hardened Runtime is enabled.
 - System commands are launched with `Process.executableURL` and argument arrays,
@@ -197,7 +208,11 @@ defines the evidence required before release.
   output remains one raw, all-filesystems message.
 - Quota scope is the current user, not administration of all users. Soft limits are treated conservatively; grace periods and inode limits are not evaluated. A capacity estimate is not a write-permission guarantee.
 - Settings appearance (System/Light/Dark), optional numeric animations, and thresholds are persisted and read on refresh; they are not versioned
-  with historical alerts.
+  with historical alerts (a history entry does not record which threshold was
+  in force when it was raised).
+- Alert history clear times are refresh times; an alert still open when the app
+  quits is closed at the first refresh after relaunch. Acknowledging is
+  bookkeeping only and does not stop a rule from firing.
 - Benchmark reads happen immediately after writes and may be served by the
   macOS cache; results are not raw-device performance.
 - FSEvents monitoring is opt-in and aggregate, but selected root labels can still
@@ -224,9 +239,9 @@ Ordered by expected value for administrators of local AI storage. Items marked
 3. **Sustained multi-run benchmark** with percentiles, device isolation and an
    explicit wall-clock budget, so GB/s claims can be defended beyond one bounded
    run.
-4. **Alert delivery integrations** (log export to a SIEM, webhook or e-mail)
-   built on the local alert history, with the same opt-in and no-spam rules as
-   the macOS notifications.
+4. **Alert delivery integrations** (log shipping to a SIEM, webhook or e-mail)
+   built on the existing local alert history and JSON export, with the same
+   opt-in and no-spam rules as the macOS notifications already implemented.
 5. **APFS container view**: snapshots, encryption state and physical-store health
    in one place, read-only, using `diskutil apfs list -plist`.
 6. **Time-to-full estimate** from the retained I/O and capacity history, labeled

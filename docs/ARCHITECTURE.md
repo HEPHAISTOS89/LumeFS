@@ -24,6 +24,9 @@ MonitoringEngine (actor)
     └── AlertRuleEngine ──────────── deterministic rules
 
 Opt-in/manual paths owned by MonitoringStore
+    ├── AlertHistoryLedger ───────── lifecycle per alert id, 500 entries, Application Support JSON
+    ├── CriticalAlertNotifier ────── UNUserNotificationCenter, opt-in, critical only
+    ├── SnapshotExporter ─────────── JSON / CSV of the current snapshot via NSSavePanel
     ├── FileActivityCollector ────── FSEvents, aggregated to root labels
     ├── DiskBenchmark ────────────── app-owned temporary file
     ├── WorkloadReadinessCalculator 20% capacity-margin estimate
@@ -43,7 +46,8 @@ navigation sections:
 - Performance
 - Attribution (which local processes and NFS users drive activity)
 - Activity
-- Alerts, including an in-place evidence pane
+- Alerts, with an Active / History switch, an in-place evidence pane, a
+  lifecycle pane and an Acknowledge action
 
 Settings are presented in a separate macOS Settings scene. Capacity sliders are
 saved through `@AppStorage`; the engine reads them on each refresh and passes
@@ -226,8 +230,53 @@ receives only the root label. Monitoring ends when stopped or the process exits.
 The alert engine is deterministic and sorts first by severity, then by creation
 time. See [Metrics](METRICS.md) for the exact rules.
 
-Alerts are recomputed on every refresh; there is no persistent acknowledgement,
-history database, or notification delivery subsystem.
+Alerts are recomputed on every refresh. Their lifecycle is kept separately by
+`AlertHistoryLedger`, a pure value type the store reconciles after each applied
+snapshot: an alert id that appears opens an entry (`active`), an id that is
+still present refreshes the entry's payload and `lastSeenAt`, an id that
+disappears closes the entry (`cleared`, timestamped with that refresh), and the
+user can mark an open entry `acknowledged` without changing whether the rule
+fires. The ledger holds at most 500 entries; trimming drops the oldest closed
+entries first, so open alerts are never evicted.
+
+`AlertHistoryPersistence` writes the ledger as pretty-printed ISO-8601 JSON to
+`~/Library/Application Support/LumeFS/alert-history.json` (atomic write) when
+an entry is raised, cleared, acknowledged or removed, and when monitoring is
+paused. A file that cannot be decoded or has a foreign schema version is moved
+to `alert-history.unreadable.json`, never deleted, and monitoring continues with
+an empty ledger. An alert still open when the app quits is closed at the first
+refresh of the next launch, so its clear time is then the relaunch time rather
+than the moment the condition ended. Tests inject a temporary-directory
+persistence; a store built without one keeps the history in memory.
+
+### Notifications
+
+`CriticalAlertNotifier` is the only code that touches `UNUserNotificationCenter`.
+It exists only in the app's store (`MonitoringStore.forApplication()`); tests
+construct stores without it. Nothing is requested from macOS until the user
+turns on “Notify me about critical alerts” in Settings, which calls
+`requestAuthorization([.alert, .sound])` once. `CriticalAlertNotificationPlanner`
+(pure, tested) decides what to post: only `critical` severities, one
+notification per refresh however many alerts it raised (up to three titles in
+the body, then “and N more”), and a 10-minute per-alert-id cooldown so a
+flapping mount or oscillating capacity cannot repeat. The notification carries
+the alert title only; evidence, paths, device names and user names stay in the
+app. Without a delegate, macOS does not show banners while LumeFS is frontmost.
+
+### Snapshot export
+
+`SnapshotExporter` serializes `MonitoringExport`: everything the UI currently
+shows (volumes, device samples, NFS client counters, mount information, NFS
+users, process I/O, quotas, active alerts, alert history) with the provenance
+of every record and the app version. Nothing is re-collected at export time.
+JSON is the full model with ISO-8601 dates; CSV is a long table
+(`captured_at,category,identifier,metric,value,unit,provenance`) with RFC 4180
+quoting and CRLF rows. NFS client addresses are masked to their network prefix
+unless the user opted into full addresses in Settings, and the export records
+which choice applied (`addressesMasked`). The destination comes only from
+`NSSavePanel` (`SnapshotExportCoordinator`); the store never chooses a path.
+File › Export Snapshot as JSON… (⇧⌘E) / as CSV… (⌥⇧⌘E) and the toolbar Export
+menu use the same path.
 
 ## Process and trust boundaries
 
@@ -258,7 +307,11 @@ Opt-in FSEvents monitoring observes metadata events under a selected root but
 emits only an aggregate root label and operation counts. The UI can display
 mount paths, mount sources, device names, SMART text, quota output, the current
 username, and the chosen folder's basename. Treat screenshots and recordings as
-potentially identifying.
+potentially identifying. The same fields leave the Mac only when the user
+exports a snapshot to a location they choose; the alert-history file in
+Application Support stores alert titles, messages and evidence strings, which
+can name volumes, mounts, devices and NFS users. Notifications carry alert
+titles only.
 
 The App Sandbox is disabled in `project.yml`; Hardened Runtime is enabled. Any
 distribution decision should review this boundary and the generated app's
@@ -280,3 +333,8 @@ depending on the collector.
 Activity is session-only and capped at 200 newest events. When client layout
 counters first become non-zero, the timeline records that NFSv4.1 layout
 operations were observed as pNFS evidence; it does not claim mount attribution.
+
+Alert history persists across launches; a failed write surfaces as a message in
+the History pane and monitoring continues with the in-memory ledger. A failed
+export leaves the previous successful export location unchanged, records no
+Activity event, and is reported in a standard alert sheet on the main window.

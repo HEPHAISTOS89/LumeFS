@@ -51,6 +51,21 @@ project remains a hackathon prototype.
   removes the file and workspace. The UI requests 128 MiB.
 - Opt-in FSEvents monitoring reports aggregate operations under a root label;
   emitted activity records do not contain individual event paths or contents.
+- Alert history is written to
+  `~/Library/Application Support/LumeFS/alert-history.json` (500 entries
+  maximum, atomic writes). It contains alert titles, messages and evidence
+  strings, which can include mount paths, device names, quota output and NFS
+  user names with masked addresses. An unreadable file is set aside as
+  `alert-history.unreadable.json`, never deleted.
+- Snapshot export writes only to a location chosen in the standard save panel.
+  The JSON/CSV contains the same fields the UI shows, including mount paths,
+  device names, process names, the current username and quota output; NFS
+  client addresses are masked unless the user enabled full addresses, and the
+  file records which applied. Review an export before sharing it.
+- macOS notifications are off by default; enabling them triggers the single
+  system permission prompt. Only critical alerts are posted, the body is the
+  alert title, and the same alert id is announced at most once per 10 minutes.
+  No notification carries evidence, paths, addresses or user names.
 - `scripts/nfs_lab.sh` is separate developer tooling. Its setup/cleanup actions
   require explicit confirmation and administrator authorization.
 
@@ -61,7 +76,8 @@ The current prototype should not be treated as security-hardened:
 - the variable `diskutil` mount path is required to be absolute but is not
   canonicalized against the current mount inventory inside the runner;
 - command output limits are checked after child-process completion;
-- mount paths and quota output can be displayed without redaction;
+- mount paths and quota output can be displayed, persisted in the alert
+  history and exported without redaction;
 - a watched folder's basename appears in the Activity view;
 - quota command errors can surface localized stderr text in the UI;
 - automated UI, accessibility, privacy-canary, and comprehensive live-collector

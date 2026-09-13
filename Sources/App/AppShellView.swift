@@ -52,6 +52,18 @@ struct AppShellView: View {
         .task {
             store.start()
         }
+        .alert(
+            "Export failed",
+            isPresented: Binding(
+                get: { store.exportError != nil },
+                set: { if !$0 { store.dismissExportError() } }
+            ),
+            presenting: store.exportError
+        ) { _ in
+            Button("OK") { store.dismissExportError() }
+        } message: { error in
+            Text(error)
+        }
     }
 
     private var statusItem: some ToolbarContent {
@@ -77,6 +89,19 @@ struct AppShellView: View {
                       systemImage: store.isMonitoring ? "pause" : "play")
             }
             .help(store.isMonitoring ? "Pause monitoring" : "Resume monitoring")
+
+            Menu {
+                Button("Export Snapshot as JSON…") {
+                    SnapshotExportCoordinator.export(from: store, format: .json)
+                }
+                Button("Export Snapshot as CSV…") {
+                    SnapshotExportCoordinator.export(from: store, format: .csv)
+                }
+            } label: {
+                Label("Export", systemImage: "square.and.arrow.up")
+            }
+            .help("Export the current snapshot and alert history (⇧⌘E)")
+            .disabled(store.lastUpdated == nil)
         }
     }
 

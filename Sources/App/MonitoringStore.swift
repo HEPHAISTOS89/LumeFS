@@ -67,6 +67,11 @@ final class MonitoringStore {
     private(set) var pNFSReplayError: String?
     private(set) var quotas: [QuotaSnapshot] = []
     private(set) var alerts: [MonitoringAlert] = []
+    /// Newest raised first; mirrors the ledger after every refresh.
+    private(set) var alertHistory: [AlertHistoryEntry] = []
+    private(set) var alertHistoryError: String?
+    private(set) var lastExportURL: URL?
+    private(set) var exportError: String?
     private(set) var activity: [ActivityEvent] = []
     private(set) var watchedFolderLabel: String?
     private(set) var fileActivityError: String?
@@ -87,13 +92,135 @@ final class MonitoringStore {
     private var fileActivityCollector: FileActivityCollector?
     @ObservationIgnored
     private var fileActivityTask: Task<Void, Never>?
+    @ObservationIgnored
+    private var ledger: AlertHistoryLedger
+    @ObservationIgnored
+    private let alertHistoryPersistence: AlertHistoryPersistence?
+    /// Nil in tests and in any context without an app bundle: no notification is ever posted.
+    let criticalAlertNotifier: CriticalAlertNotifier?
 
-    init(collectSnapshot: (@Sendable () async -> SystemSnapshot)? = nil) {
+    /// - Parameters:
+    ///   - alertHistoryPersistence: where the alert ledger is read at start and
+    ///     written on lifecycle changes. Nil keeps the history in memory only.
+    ///   - criticalAlertNotifier: opt-in notification bridge; nil disables delivery.
+    init(
+        collectSnapshot: (@Sendable () async -> SystemSnapshot)? = nil,
+        alertHistoryPersistence: AlertHistoryPersistence? = nil,
+        criticalAlertNotifier: CriticalAlertNotifier? = nil
+    ) {
         if let collectSnapshot {
             self.collectSnapshot = collectSnapshot
         } else {
             let engine = MonitoringEngine()
             self.collectSnapshot = { await engine.refresh() }
+        }
+        self.alertHistoryPersistence = alertHistoryPersistence
+        self.criticalAlertNotifier = criticalAlertNotifier
+        self.ledger = alertHistoryPersistence?.load() ?? AlertHistoryLedger()
+        self.alertHistory = ledger.entries
+    }
+
+    /// Production configuration: ledger in Application Support, notifications available.
+    static func forApplication() -> MonitoringStore {
+        MonitoringStore(
+            alertHistoryPersistence: .applicationSupport(),
+            criticalAlertNotifier: CriticalAlertNotifier()
+        )
+    }
+
+    var alertHistoryFileURL: URL? { alertHistoryPersistence?.fileURL }
+
+    var openAlertHistory: [AlertHistoryEntry] { ledger.openEntries }
+
+    func historyEntry(forAlertID alertID: String) -> AlertHistoryEntry? {
+        ledger.openEntry(forAlertID: alertID)
+    }
+
+    /// Marks an open entry as acknowledged. Acknowledgement is bookkeeping only:
+    /// the alert stays active until its rule stops firing.
+    @discardableResult
+    func acknowledgeAlert(entryID: String, at date: Date = Date()) -> Bool {
+        guard ledger.acknowledge(entryID: entryID, at: date) else { return false }
+        alertHistory = ledger.entries
+        persistAlertHistory()
+        if let entry = ledger.entries.first(where: { $0.id == entryID }) {
+            appendActivity(
+                displayPath: "Alerts",
+                description: "Acknowledged alert: \(entry.alert.title)",
+                provenance: entry.alert.provenance,
+                at: date
+            )
+        }
+        return true
+    }
+
+    /// Removes cleared entries from the ledger; open alerts are always kept.
+    func clearClosedAlertHistory() {
+        ledger.clearHistory(keepOpen: true)
+        alertHistory = ledger.entries
+        persistAlertHistory()
+    }
+
+    var appVersionLabel: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let version = info["CFBundleShortVersionString"] as? String ?? "0"
+        let build = info["CFBundleVersion"] as? String ?? "0"
+        return "\(version) (\(build))"
+    }
+
+    /// Serializes what the UI currently shows. Nothing is re-collected.
+    func makeExport(maskAddresses: Bool, at date: Date = Date()) -> MonitoringExport {
+        MonitoringExport(
+            exportedAt: date,
+            appVersion: appVersionLabel,
+            addressesMasked: maskAddresses,
+            volumes: volumes,
+            deviceSamples: latestDeviceSamples,
+            nfsClient: nfsMetrics,
+            nfsMounts: nfsMounts,
+            nfsUsers: maskAddresses ? nfsUsers.maskingAddresses() : nfsUsers,
+            processIO: processIO,
+            quotas: quotas,
+            activeAlerts: alerts,
+            alertHistory: ledger.entries
+        )
+    }
+
+    func exportData(format: SnapshotExportFormat, maskAddresses: Bool, at date: Date = Date()) throws -> Data {
+        try SnapshotExporter().data(for: makeExport(maskAddresses: maskAddresses, at: date), format: format)
+    }
+
+    /// Writes one export to a user-chosen location. Addresses are masked unless
+    /// the user opted into full NFS client addresses in Settings.
+    func exportSnapshot(format: SnapshotExportFormat, to url: URL, at date: Date = Date()) {
+        exportError = nil
+        let showFullAddresses = UserDefaults.standard.bool(forKey: "showFullNFSClientAddresses")
+        do {
+            let data = try exportData(format: format, maskAddresses: !showFullAddresses, at: date)
+            try data.write(to: url, options: [.atomic])
+            lastExportURL = url
+            appendActivity(
+                displayPath: url.lastPathComponent,
+                description: "Exported a \(format.label) snapshot: \(alerts.count) active alert(s), \(ledger.entries.count) history entries, \(showFullAddresses ? "full" : "masked") NFS client addresses.",
+                provenance: .live,
+                at: date
+            )
+        } catch {
+            exportError = error.localizedDescription
+        }
+    }
+
+    func dismissExportError() {
+        exportError = nil
+    }
+
+    private func persistAlertHistory() {
+        guard let alertHistoryPersistence else { return }
+        do {
+            try alertHistoryPersistence.save(ledger)
+            alertHistoryError = nil
+        } catch {
+            alertHistoryError = "Alert history could not be saved: \(error.localizedDescription)"
         }
     }
 
@@ -151,6 +278,11 @@ final class MonitoringStore {
         monitoringTask?.cancel()
         monitoringTask = nil
         isMonitoring = false
+        // Open entries only refresh `lastSeenAt` in memory during a session;
+        // pausing is the natural point to write that progress down.
+        if !ledger.openEntries.isEmpty {
+            persistAlertHistory()
+        }
     }
 
     func refreshNow() async {
@@ -294,6 +426,13 @@ final class MonitoringStore {
         quotas = snapshot.quotas
         alerts = snapshot.alerts
         lastUpdated = snapshot.capturedAt
+
+        let reconciliation = ledger.reconcile(activeAlerts: snapshot.alerts, at: snapshot.capturedAt)
+        alertHistory = ledger.entries
+        if !reconciliation.isEmpty {
+            persistAlertHistory()
+            criticalAlertNotifier?.deliver(raised: reconciliation.raised, at: snapshot.capturedAt)
+        }
 
         if let aggregate = aggregateSample(snapshot.deviceSamples, at: snapshot.capturedAt) {
             ioHistory.append(aggregate)
