@@ -199,7 +199,7 @@ private struct VolumeDetailView: View {
                 detailRow("Source", volume.source)
                 detailRow("Local", volume.isLocal ? "Yes" : "No")
                 detailRow("Read only", volume.isReadOnly ? "Yes" : "No")
-                detailRow("SMART", volume.smartStatus ?? "Unavailable")
+                detailRow("SMART", volume.smartStatus == nil ? "Unavailable" : volume.smartAssessment.label)
                 if volume.fileSystem == .apfs {
                     detailRow("APFS volume quota", volume.apfsVolumeQuotaBytes.map(MetricFormatter.bytes) ?? "Not reported")
                     detailRow("APFS reserve", volume.apfsVolumeReserveBytes.map(MetricFormatter.bytes) ?? "Not reported")

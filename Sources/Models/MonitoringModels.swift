@@ -44,6 +44,54 @@ enum HealthSeverity: Int, Codable, Comparable, Sendable {
     }
 }
 
+/// Interpretation of the free-text `SMARTStatus` string that `diskutil` reports.
+///
+/// `diskutil` emits `Verified` for a healthy device, `Not Supported` for devices or
+/// bridges that expose no SMART data (most USB enclosures, disk images, network or
+/// virtual storage), and failure wording such as `Failing` when the device reports a
+/// problem. Only explicit failure wording is a health signal; everything else is an
+/// absence of evidence and must not be presented as a critical device fault.
+enum SMARTAssessment: Equatable, Sendable {
+    case verified
+    case notSupported
+    case degraded(String)
+    case unrecognized(String)
+
+    private static let degradedMarkers = [
+        "fail", "fault", "error", "critical", "degrad", "warn", "bad", "predict"
+    ]
+    private static let notSupportedValues: Set<String> = [
+        "", "not supported", "unsupported", "not available", "n/a", "unknown", "none"
+    ]
+
+    static func assess(_ raw: String?) -> SMARTAssessment {
+        let trimmed = (raw ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowered = trimmed.lowercased()
+        if lowered == "verified" { return .verified }
+        if notSupportedValues.contains(lowered) { return .notSupported }
+        if degradedMarkers.contains(where: { lowered.contains($0) }) {
+            return .degraded(trimmed)
+        }
+        return .unrecognized(trimmed)
+    }
+
+    var label: String {
+        switch self {
+        case .verified: "Verified"
+        case .notSupported: "Not reported by this device"
+        case let .degraded(raw): "Degraded (\(raw))"
+        case let .unrecognized(raw): "Unrecognized (\(raw))"
+        }
+    }
+
+    var isEvidence: Bool {
+        switch self {
+        case .verified, .degraded: true
+        case .notSupported, .unrecognized: false
+        }
+    }
+}
+
 struct VolumeSnapshot: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let name: String
@@ -59,6 +107,10 @@ struct VolumeSnapshot: Identifiable, Codable, Hashable, Sendable {
     var smartStatus: String?
     var apfsVolumeQuotaBytes: Int64?
     var apfsVolumeReserveBytes: Int64?
+
+    var smartAssessment: SMARTAssessment {
+        SMARTAssessment.assess(smartStatus)
+    }
 
     func capacitySeverity(thresholds: CapacityThresholds) -> HealthSeverity {
         guard totalBytes > 0 else { return .notice }

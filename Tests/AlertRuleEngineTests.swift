@@ -83,7 +83,62 @@ final class AlertRuleEngineTests: XCTestCase {
                                                 previousNFS: nil, quotas: [quota]).isEmpty)
     }
 
-    private func makeVolume(total: Int64, available: Int64) -> VolumeSnapshot {
+    func testSMARTAssessmentClassifiesDiskutilWording() {
+        XCTAssertEqual(SMARTAssessment.assess("Verified"), .verified)
+        XCTAssertEqual(SMARTAssessment.assess(" verified "), .verified)
+        XCTAssertEqual(SMARTAssessment.assess("Not Supported"), .notSupported)
+        XCTAssertEqual(SMARTAssessment.assess(""), .notSupported)
+        XCTAssertEqual(SMARTAssessment.assess(nil), .notSupported)
+        XCTAssertEqual(SMARTAssessment.assess("Unknown"), .notSupported)
+        XCTAssertEqual(SMARTAssessment.assess("Failing"), .degraded("Failing"))
+        XCTAssertEqual(SMARTAssessment.assess("Predictive Failure"), .degraded("Predictive Failure"))
+        XCTAssertEqual(SMARTAssessment.assess("Zebra"), .unrecognized("Zebra"))
+        XCTAssertFalse(SMARTAssessment.notSupported.isEvidence)
+        XCTAssertTrue(SMARTAssessment.verified.isEvidence)
+    }
+
+    func testMissingOrUnsupportedSMARTNeverCreatesCriticalAlert() {
+        for status in [nil, "", "Not Supported", "Unknown"] as [String?] {
+            let volume = makeVolume(total: 1_000, available: 900, smartStatus: status)
+            let alerts = AlertRuleEngine().evaluate(
+                volumes: [volume], samples: [], nfs: .unavailable, previousNFS: nil
+            )
+            XCTAssertTrue(alerts.isEmpty, "Status \(String(describing: status)) produced \(alerts.map(\.ruleID))")
+        }
+    }
+
+    func testOnlyExplicitlyDegradedSMARTIsCritical() {
+        let failing = makeVolume(total: 1_000, available: 900, smartStatus: "Failing")
+        let alerts = AlertRuleEngine().evaluate(
+            volumes: [failing], samples: [], nfs: .unavailable, previousNFS: nil
+        )
+        XCTAssertEqual(alerts.count, 1)
+        XCTAssertEqual(alerts.first?.ruleID, "device.smart.unhealthy")
+        XCTAssertEqual(alerts.first?.severity, .critical)
+        XCTAssertEqual(alerts.first?.evidence, "SMART status: Failing")
+    }
+
+    func testUnrecognizedSMARTWordingIsOnlyANotice() {
+        let odd = makeVolume(total: 1_000, available: 900, smartStatus: "Zebra")
+        let alerts = AlertRuleEngine().evaluate(
+            volumes: [odd], samples: [], nfs: .unavailable, previousNFS: nil
+        )
+        XCTAssertEqual(alerts.first?.ruleID, "device.smart.unrecognized")
+        XCTAssertEqual(alerts.first?.severity, .notice)
+    }
+
+    func testSMARTNoticeDoesNotSuppressCapacityAlert() {
+        // A volume can carry at most one volume-level alert per refresh; a degraded
+        // device outranks capacity, but an unrecognized SMART string must not hide a
+        // real capacity problem.
+        let lowAndOdd = makeVolume(total: 1_000, available: 50, smartStatus: "Zebra")
+        let alerts = AlertRuleEngine().evaluate(
+            volumes: [lowAndOdd], samples: [], nfs: .unavailable, previousNFS: nil
+        )
+        XCTAssertTrue(alerts.contains { $0.ruleID == "volume.capacity.critical" })
+    }
+
+    private func makeVolume(total: Int64, available: Int64, smartStatus: String? = "Verified") -> VolumeSnapshot {
         VolumeSnapshot(
             id: "test",
             name: "Test",
@@ -96,7 +151,7 @@ final class AlertRuleEngineTests: XCTestCase {
             isReadOnly: false,
             isLocal: true,
             capturedAt: Date(),
-            smartStatus: "Verified",
+            smartStatus: smartStatus,
             apfsVolumeQuotaBytes: nil,
             apfsVolumeReserveBytes: nil
         )

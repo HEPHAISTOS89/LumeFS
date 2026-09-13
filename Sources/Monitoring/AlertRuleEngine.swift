@@ -40,40 +40,62 @@ struct AlertRuleEngine: Sendable {
         _ volumes: [VolumeSnapshot],
         thresholds: CapacityThresholds
     ) -> [MonitoringAlert] {
-        volumes.compactMap { volume in
-            if let smartStatus = volume.smartStatus,
-               smartStatus.caseInsensitiveCompare("Verified") != .orderedSame {
-                return MonitoringAlert(
-                    id: "smart-\(volume.id)",
-                    ruleID: "device.smart.unhealthy",
-                    severity: .critical,
-                    title: "Storage health requires attention",
-                    message: "\(volume.name) reports SMART status \(smartStatus).",
-                    evidence: "SMART status: \(smartStatus)",
-                    recommendation: "Pause write-heavy workloads and inspect the device before continuing.",
-                    relatedVolumeID: volume.id,
-                    createdAt: volume.capturedAt,
-                    provenance: .live
-                )
+        volumes.flatMap { volume -> [MonitoringAlert] in
+            var alerts: [MonitoringAlert] = []
+            if let smart = smartAlert(for: volume) {
+                alerts.append(smart)
             }
 
             let capacitySeverity = volume.capacitySeverity(thresholds: thresholds)
             if capacitySeverity == .critical {
-                return capacityAlert(
+                alerts.append(capacityAlert(
                     for: volume,
                     severity: .critical,
                     threshold: MetricFormatter.percentage(thresholds.criticalFreeFraction)
-                )
-            }
-
-            if capacitySeverity == .warning {
-                return capacityAlert(
+                ))
+            } else if capacitySeverity == .warning {
+                alerts.append(capacityAlert(
                     for: volume,
                     severity: .warning,
                     threshold: MetricFormatter.percentage(thresholds.warningFreeFraction)
-                )
+                ))
             }
+            return alerts
+        }
+    }
 
+    /// Absence of SMART data ("Not Supported", empty) is not a fault. Only explicit
+    /// failure wording is critical; unknown wording is surfaced as a notice so an
+    /// operator can look at it without a false red alert.
+    private func smartAlert(for volume: VolumeSnapshot) -> MonitoringAlert? {
+        switch volume.smartAssessment {
+        case let .degraded(raw):
+            return MonitoringAlert(
+                id: "smart-\(volume.id)",
+                ruleID: "device.smart.unhealthy",
+                severity: .critical,
+                title: "Storage health requires attention",
+                message: "\(volume.name) reports SMART status \(raw).",
+                evidence: "SMART status: \(raw)",
+                recommendation: "Pause write-heavy workloads and inspect the device before continuing.",
+                relatedVolumeID: volume.id,
+                createdAt: volume.capturedAt,
+                provenance: .live
+            )
+        case let .unrecognized(raw):
+            return MonitoringAlert(
+                id: "smart-unrecognized-\(volume.id)",
+                ruleID: "device.smart.unrecognized",
+                severity: .notice,
+                title: "SMART status not recognized",
+                message: "\(volume.name) reports an unfamiliar SMART status.",
+                evidence: "SMART status: \(raw)",
+                recommendation: "Check the device with Disk Utility. LumeFS does not treat unknown wording as a failure.",
+                relatedVolumeID: volume.id,
+                createdAt: volume.capturedAt,
+                provenance: .live
+            )
+        case .verified, .notSupported:
             return nil
         }
     }
