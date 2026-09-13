@@ -149,14 +149,17 @@ final class MigrationController {
         record(.started, plan: plan, at: date, detail: nil)
         onActivity?(plan.destinationLabel, "Started copying \(plan.sourceLabel) to \(plan.destinationVolumeName): \(plan.inventory.fileCount) file(s), \(MetricFormatter.bytes(plan.inventory.totalBytes)). Original retained.", date)
 
+        // Strong capture on purpose: the controller lives for the app's lifetime
+        // and a running copy must be able to report its outcome.
         let executor = executor
-        copyTask = Task { [weak self] in
+        let controller = self
+        copyTask = Task {
             let result = await executor.run(plan) { update in
-                Task { @MainActor [weak self] in
-                    self?.applyProgress(update)
+                Task { @MainActor in
+                    controller.applyProgress(update)
                 }
             }
-            self?.finish(result, plan: plan)
+            controller.finish(result, plan: plan)
         }
     }
 

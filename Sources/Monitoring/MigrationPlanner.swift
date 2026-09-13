@@ -382,7 +382,9 @@ actor MigrationExecutor {
                 throw MigrationPlanError.sourceNotReadable
             }
 
-            for case let relative as String in enumerator {
+            // `nextObject()` rather than for-in: NSEnumerator's iterator is
+            // unavailable from asynchronous contexts.
+            while let relative = enumerator.nextObject() as? String {
                 try Task.checkCancellation()
                 let source = plan.sourceURL.appendingPathComponent(relative)
                 let target = plan.destinationURL.appendingPathComponent(relative)
