@@ -269,6 +269,31 @@ private struct VolumeDetailView: View {
                 ProvenanceBadge(provenance: quota?.provenance ?? .unavailable)
             }
             .padding(.vertical, 6)
+
+            VStack(alignment: .leading, spacing: 6) {
+                ProductLabel("Scope: current user only · LumeFS never requests administrator rights", systemImage: "lock")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(QuotaCoverage.guidance(for: volume))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: LayoutMetrics.compactSpacing) {
+                    Text(QuotaCoverage.administratorCommand)
+                        .font(.callout.monospaced())
+                        .textSelection(.enabled)
+                    Spacer(minLength: 0)
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(QuotaCoverage.administratorCommand, forType: .string)
+                    } label: {
+                        ProductLabel("Copy administrator command", systemImage: "doc.on.doc")
+                    }
+                    .controlSize(.small)
+                    .help("Copies the all-user quota report command for Terminal. LumeFS does not run it and does not ask for your password.")
+                }
+            }
         }
     }
 

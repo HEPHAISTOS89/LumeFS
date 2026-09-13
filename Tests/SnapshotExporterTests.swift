@@ -20,6 +20,8 @@ final class SnapshotExporterTests: XCTestCase {
         XCTAssertEqual(decoded.nfsUsers.users.map(\.address), ["192.0.·.·"])
         XCTAssertEqual(decoded.processIO.samples.map(\.workloadHint), ["ollama"])
         XCTAssertEqual(decoded.quotas.map(\.provenance), [.live])
+        XCTAssertEqual(decoded.quotaCoverage.scope, "current-user")
+        XCTAssertEqual(decoded.quotaCoverage.administratorCommand, "sudo repquota -a -v")
         XCTAssertEqual(decoded.activeAlerts.map(\.id), ["capacity-data"])
         XCTAssertEqual(decoded.alertHistory.map(\.state), [.active, .cleared])
 
@@ -46,7 +48,9 @@ final class SnapshotExporterTests: XCTestCase {
         XCTAssertEqual(rows("nfs_mount").count, 5)
         XCTAssertEqual(rows("nfs_user").count, 4)
         XCTAssertEqual(rows("process").count, 5 + 3)
-        XCTAssertEqual(rows("quota").count, 4)
+        XCTAssertEqual(rows("quota").count, 4 + 2)
+        XCTAssertTrue(lines.contains("2027-01-15T08:00:00.000Z,quota,coverage,scope,current-user,,LIVE"))
+        XCTAssertTrue(lines.contains("2027-01-15T08:00:00.000Z,quota,coverage,administrator_command,sudo repquota -a -v,,LIVE"))
         XCTAssertEqual(rows("alert").count, 4)
         XCTAssertEqual(rows("alert_history").count, 12)
 
@@ -189,6 +193,7 @@ final class SnapshotExporterTests: XCTestCase {
             nfsUsers: maskAddresses ? users.maskingAddresses() : users,
             processIO: processIO,
             quotas: [quota],
+            quotaCoverage: .current(subject: "alice"),
             activeAlerts: [active],
             alertHistory: history
         )

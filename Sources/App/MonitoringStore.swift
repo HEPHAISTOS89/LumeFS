@@ -183,6 +183,7 @@ final class MonitoringStore {
             nfsUsers: maskAddresses ? nfsUsers.maskingAddresses() : nfsUsers,
             processIO: processIO,
             quotas: quotas,
+            quotaCoverage: .current(),
             activeAlerts: alerts,
             alertHistory: ledger.entries
         )

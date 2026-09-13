@@ -554,6 +554,40 @@ struct QuotaSnapshot: Identifiable, Codable, Hashable, Sendable {
 }
 
 
+/// What LumeFS can and cannot say about quotas, stated once and exported with
+/// every snapshot so a report never implies all-user coverage.
+struct QuotaCoverage: Codable, Hashable, Sendable {
+    static let administratorCommand = "sudo repquota -a -v"
+
+    let scope: String
+    let subject: String
+    let administratorCommand: String
+    let note: String
+
+    static func current(subject: String = NSUserName()) -> QuotaCoverage {
+        QuotaCoverage(
+            scope: "current-user",
+            subject: subject,
+            administratorCommand: administratorCommand,
+            note: "quota -uv reports only the current user. All-user reports need administrator rights and must run where quotas are enforced; LumeFS never requests them."
+        )
+    }
+
+    /// Per-volume guidance. APFS has no per-user quota mechanism at all; NFS
+    /// quotas live on the server; legacy local file systems use quota files.
+    static func guidance(for volume: VolumeSnapshot) -> String {
+        switch volume.fileSystem {
+        case .apfs:
+            return "APFS does not enforce per-user quotas; the only limits are the APFS volume quota and reserve above. `\(administratorCommand)` will not list users for this volume."
+        case .nfs:
+            let server = volume.source.split(separator: ":", maxSplits: 1).first.map(String.init) ?? "the NFS server"
+            return "Per-user quotas for this mount are enforced on \(server). Run `\(administratorCommand)` there as an administrator; the client can only ask about the current user through rquotad."
+        case .autofs, .other:
+            return "Run `\(administratorCommand)` as an administrator on this Mac to list every user's usage and limits; it reads the file system's quota files and changes nothing."
+        }
+    }
+}
+
 extension QuotaSnapshot {
     /// Exact filesystem matching only; raw all-filesystem output is not a numeric limit.
     func applies(to volume: VolumeSnapshot) -> Bool {

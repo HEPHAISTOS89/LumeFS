@@ -14,6 +14,8 @@ struct MonitoringExport: Codable, Sendable {
     let nfsUsers: NFSUserActivitySnapshot
     let processIO: ProcessIOSnapshot
     let quotas: [QuotaSnapshot]
+    /// Always present so a reader knows the quota rows cover one user only.
+    let quotaCoverage: QuotaCoverage
     let activeAlerts: [MonitoringAlert]
     let alertHistory: [AlertHistoryEntry]
 }
@@ -124,6 +126,8 @@ struct SnapshotExporter {
         add(export.processIO.capturedAt, "process", "coverage", "denied_processes", String(export.processIO.deniedProcessCount), "count", export.processIO.provenance)
         add(export.processIO.capturedAt, "process", "coverage", "total_processes", String(export.processIO.totalProcessCount), "count", export.processIO.provenance)
 
+        add(export.exportedAt, "quota", "coverage", "scope", export.quotaCoverage.scope, "", .live)
+        add(export.exportedAt, "quota", "coverage", "administrator_command", export.quotaCoverage.administratorCommand, "", .live)
         for quota in export.quotas {
             add(quota.capturedAt, "quota", quota.mountPoint, "subject", quota.subject, "", quota.provenance)
             add(quota.capturedAt, "quota", quota.mountPoint, "used_bytes", quota.usedBytes.map(String.init) ?? "", "bytes", quota.provenance)
