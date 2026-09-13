@@ -42,6 +42,16 @@ All notable project changes will be documented here.
 
 ### Changed
 
+- Benchmark: the write now bypasses the buffer cache (`F_NOCACHE`) and is
+  flushed with `F_FULLFSYNC` (fallback `fsync`, reported); the read is split
+  into an uncached pass (`F_NOCACHE`, read-ahead off, never-resident pages) and
+  a cached pass (second normal read), both labeled. Sizes 128 / 256 / 512 /
+  1,024 MiB are selectable and the run can be cancelled; the workspace is
+  removed on every path. The internal ceiling moved from 256 MiB to 1,024 MiB
+  because sub-100 ms passes on fast SSDs gave unstable rates; the 2× free-space
+  guard is unchanged. `BenchmarkResult.readBytesPerSecond` /
+  `readMayUseSystemCache` were replaced by `uncachedReadBytesPerSecond`,
+  `cachedReadBytesPerSecond`, `writeUsedFullSync` and `writeBypassedCache`.
 - Whole-device IOKit counters are deduplicated by `IOBlockStorageDriver`
   registry identity so “All devices” no longer double-counts a device that
   exposes several whole `IOMedia` nodes.

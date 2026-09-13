@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 enum BenchmarkError: LocalizedError, Equatable {
@@ -5,23 +6,32 @@ enum BenchmarkError: LocalizedError, Equatable {
     case insufficientSpace(requiredBytes: Int64, availableBytes: Int64)
     case unsafePath
     case incompleteRead(expectedBytes: Int64, actualBytes: Int64)
+    case ioFailure(operation: String, code: Int32)
 
     var errorDescription: String? {
         switch self {
         case .invalidSize:
-            "Benchmark size must be between 1 and 256 MiB."
+            "Benchmark size must be between 1 and \(BenchmarkGuard.maximumMebibytes) MiB."
         case let .insufficientSpace(requiredBytes, availableBytes):
             "The benchmark needs \(MetricFormatter.bytes(requiredBytes)) free; \(MetricFormatter.bytes(availableBytes)) is available."
         case .unsafePath:
             "The benchmark refused to use a path outside its temporary workspace."
         case let .incompleteRead(expectedBytes, actualBytes):
             "The benchmark read \(MetricFormatter.bytes(actualBytes)) of \(MetricFormatter.bytes(expectedBytes))."
+        case let .ioFailure(operation, code):
+            "The benchmark \(operation) failed: \(String(cString: strerror(code))) (\(code))."
         }
     }
 }
 
 struct BenchmarkGuard: Sendable {
-    static let maximumMebibytes = 256
+    /// 1 GiB ceiling: at several GB/s a 128 MiB pass lasts tens of milliseconds,
+    /// too short for a stable rate; 1 GiB keeps a fast SSD busy for a few hundred
+    /// milliseconds while the 2× free-space rule below still bounds the footprint.
+    static let maximumMebibytes = 1_024
+    /// Sizes offered in the UI; the default stays 128 MiB.
+    static let selectableMebibytes = [128, 256, 512, 1_024]
+    static let defaultMebibytes = 128
 
     func byteCount(for mebibytes: Int) throws -> Int64 {
         guard (1...Self.maximumMebibytes).contains(mebibytes) else {
@@ -49,11 +59,29 @@ struct BenchmarkGuard: Sendable {
     }
 }
 
+/// Bounded temporary-file benchmark with three labeled passes.
+///
+/// 1. Write with `F_NOCACHE` so the data does not stay resident in the unified
+///    buffer cache, then `F_FULLFSYNC` (drive cache flushed; falls back to
+///    `fsync(2)` where the file system refuses).
+/// 2. Uncached read: `F_NOCACHE` + read-ahead off on a file whose pages are not
+///    resident, so the bytes come from the device (the drive's own cache can
+///    still help; this is not a raw-media number).
+/// 3. Cached read: two consecutive normal reads; the second one is reported and
+///    is served by the buffer cache.
+///
+/// Cancellation is checked between 4 MiB chunks; the workspace is removed on
+/// every exit path.
 actor DiskBenchmark {
+    static let chunkSize = 4 * 1_048_576
+    /// Page alignment lets the kernel take the direct path for uncached I/O on
+    /// both 4 KiB and 16 KiB page systems.
+    static let bufferAlignment = 16_384
+
     private let fileManager = FileManager.default
     private let guardrail = BenchmarkGuard()
 
-    func run(mebibytes: Int) throws -> BenchmarkResult {
+    func run(mebibytes: Int) async throws -> BenchmarkResult {
         let byteCount = try guardrail.byteCount(for: mebibytes)
         let workspace = fileManager.temporaryDirectory
             .appendingPathComponent("LumeFS-Benchmark-\(UUID().uuidString)", isDirectory: true)
@@ -65,36 +93,42 @@ actor DiskBenchmark {
         guard !fileManager.fileExists(atPath: workspace.path) else {
             throw BenchmarkError.unsafePath
         }
-        try fileManager.createDirectory(
-            at: workspace,
-            withIntermediateDirectories: false
-        )
+        try fileManager.createDirectory(at: workspace, withIntermediateDirectories: false)
         defer { try? fileManager.removeItem(at: workspace) }
 
         let values = try workspace.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
         let availableBytes = values.volumeAvailableCapacityForImportantUsage ?? 0
-        try guardrail.validateSpace(
-            requiredBytes: byteCount,
-            availableBytes: availableBytes
-        )
+        try guardrail.validateSpace(requiredBytes: byteCount, availableBytes: availableBytes)
 
-        guard fileManager.createFile(atPath: fileURL.path, contents: nil) else {
-            throw BenchmarkError.unsafePath
-        }
+        let buffer = UnsafeMutableRawBufferPointer.allocate(byteCount: Self.chunkSize, alignment: Self.bufferAlignment)
+        defer { buffer.deallocate() }
+        buffer.initializeMemory(as: UInt8.self, repeating: 0xA5)
 
+        try Task.checkCancellation()
         let writeStart = ContinuousClock.now
-        try write(byteCount: byteCount, to: fileURL)
+        let sync = try write(byteCount: byteCount, to: fileURL, buffer: buffer)
         let writeDuration = writeStart.duration(to: .now).seconds
 
-        let readStart = ContinuousClock.now
-        let bytesRead = try read(from: fileURL)
-        let readDuration = readStart.duration(to: .now).seconds
+        try Task.checkCancellation()
+        let uncachedStart = ContinuousClock.now
+        let uncachedBytes = try read(from: fileURL, bypassCache: true, buffer: buffer)
+        let uncachedDuration = uncachedStart.duration(to: .now).seconds
+        guard uncachedBytes == byteCount else {
+            throw BenchmarkError.incompleteRead(expectedBytes: byteCount, actualBytes: uncachedBytes)
+        }
 
-        guard bytesRead == byteCount else {
-            throw BenchmarkError.incompleteRead(
-                expectedBytes: byteCount,
-                actualBytes: bytesRead
-            )
+        // First normal pass warms the cache; only the second pass is reported.
+        try Task.checkCancellation()
+        let warmStart = ContinuousClock.now
+        _ = try read(from: fileURL, bypassCache: false, buffer: buffer)
+        let warmDuration = warmStart.duration(to: .now).seconds
+
+        try Task.checkCancellation()
+        let cachedStart = ContinuousClock.now
+        let cachedBytes = try read(from: fileURL, bypassCache: false, buffer: buffer)
+        let cachedDuration = cachedStart.duration(to: .now).seconds
+        guard cachedBytes == byteCount else {
+            throw BenchmarkError.incompleteRead(expectedBytes: byteCount, actualBytes: cachedBytes)
         }
 
         try fileManager.removeItem(at: fileURL)
@@ -102,48 +136,76 @@ actor DiskBenchmark {
 
         return BenchmarkResult(
             byteCount: byteCount,
-            readBytesPerSecond: rate(bytes: byteCount, duration: readDuration),
+            uncachedReadBytesPerSecond: rate(bytes: byteCount, duration: uncachedDuration),
+            cachedReadBytesPerSecond: rate(bytes: byteCount, duration: cachedDuration),
             writeBytesPerSecond: rate(bytes: byteCount, duration: writeDuration),
-            elapsedSeconds: writeDuration + readDuration,
+            elapsedSeconds: writeDuration + uncachedDuration + warmDuration + cachedDuration,
             completedAt: Date(),
             provenance: .benchmark,
             writeWasSynchronized: true,
-            readMayUseSystemCache: true,
+            writeUsedFullSync: sync == .full,
+            writeBypassedCache: true,
             cleanupSucceeded: true
         )
     }
 
-    private func write(byteCount: Int64, to fileURL: URL) throws {
-        let handle = try FileHandle(forWritingTo: fileURL)
-        defer { try? handle.close() }
+    private enum SyncMode { case full, fsyncOnly }
 
-        let chunkSize = 4 * 1_048_576
-        let chunk = Data(repeating: 0xA5, count: chunkSize)
+    private func write(byteCount: Int64, to fileURL: URL, buffer: UnsafeMutableRawBufferPointer) throws -> SyncMode {
+        let fd = open(fileURL.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+        guard fd >= 0 else { throw BenchmarkError.ioFailure(operation: "open", code: errno) }
+        defer { close(fd) }
+        _ = fcntl(fd, F_NOCACHE, 1)
+
+        guard let base = buffer.baseAddress else { throw BenchmarkError.ioFailure(operation: "buffer", code: ENOMEM) }
         var remaining = byteCount
-
         while remaining > 0 {
-            let count = min(Int64(chunkSize), remaining)
-            try handle.write(contentsOf: chunk.prefix(Int(count)))
-            remaining -= count
+            try Task.checkCancellation()
+            let count = Int(min(Int64(Self.chunkSize), remaining))
+            var offset = 0
+            while offset < count {
+                let written = Darwin.write(fd, base + offset, count - offset)
+                if written < 0 {
+                    if errno == EINTR { continue }
+                    throw BenchmarkError.ioFailure(operation: "write", code: errno)
+                }
+                offset += written
+            }
+            remaining -= Int64(count)
         }
 
-        try handle.synchronize()
+        if fcntl(fd, F_FULLFSYNC) == 0 {
+            return .full
+        }
+        guard fsync(fd) == 0 else { throw BenchmarkError.ioFailure(operation: "fsync", code: errno) }
+        return .fsyncOnly
     }
 
-    private func read(from fileURL: URL) throws -> Int64 {
-        let handle = try FileHandle(forReadingFrom: fileURL)
-        defer { try? handle.close() }
-
-        var byteCount: Int64 = 0
-        var checksum: UInt8 = 0
-
-        while let data = try handle.read(upToCount: 4 * 1_048_576), !data.isEmpty {
-            byteCount += Int64(data.count)
-            checksum ^= data.first ?? 0
+    private func read(from fileURL: URL, bypassCache: Bool, buffer: UnsafeMutableRawBufferPointer) throws -> Int64 {
+        let fd = open(fileURL.path, O_RDONLY)
+        guard fd >= 0 else { throw BenchmarkError.ioFailure(operation: "open", code: errno) }
+        defer { close(fd) }
+        if bypassCache {
+            _ = fcntl(fd, F_NOCACHE, 1)
+            _ = fcntl(fd, F_RDAHEAD, 0)
         }
 
+        guard let base = buffer.baseAddress else { throw BenchmarkError.ioFailure(operation: "buffer", code: ENOMEM) }
+        var total: Int64 = 0
+        var checksum: UInt8 = 0
+        while true {
+            try Task.checkCancellation()
+            let count = Darwin.read(fd, base, Self.chunkSize)
+            if count < 0 {
+                if errno == EINTR { continue }
+                throw BenchmarkError.ioFailure(operation: "read", code: errno)
+            }
+            if count == 0 { break }
+            checksum ^= buffer[0]
+            total += Int64(count)
+        }
         _ = checksum
-        return byteCount
+        return total
     }
 
     private func rate(bytes: Int64, duration: Double) -> Double {

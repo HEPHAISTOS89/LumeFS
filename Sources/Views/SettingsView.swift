@@ -103,7 +103,7 @@ struct SettingsView: View {
                 LabeledContent("NFS client statistics", value: "Enabled")
                 LabeledContent("NFS mounts and server users", value: "Read only · nfsstat, nfsd status")
                 LabeledContent("File-system quota", value: "Read only")
-                LabeledContent("Benchmark", value: "Manual · 128 MiB maximum used")
+                LabeledContent("Benchmark", value: "Manual · 128–1,024 MiB · twice that free space required")
                 LabeledContent("Alert history", value: "Application Support/LumeFS · \(AlertHistoryLedger.maximumEntries) entries maximum")
             }
         }

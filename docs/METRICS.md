@@ -314,17 +314,32 @@ temporary training files, other writers, quotas, or future availability.
 
 ## Controlled benchmark
 
-The UI requests 128 MiB. The guard accepts 1–256 MiB and requires at least twice
-the requested bytes in reported free space. The benchmark creates a previously
-absent UUID-named workspace directly below the macOS temporary directory, writes
-4 MiB chunks of deterministic data only to `sample.bin`, synchronizes the write,
-immediately reads the file, and removes both the file and workspace.
+The UI offers 128 (default), 256, 512 and 1,024 MiB. The guard accepts
+1–1,024 MiB and requires at least twice the requested bytes in reported free
+space. The ceiling was raised from 256 MiB because at several GB/s a 128 MiB
+pass lasts tens of milliseconds, too short for a stable rate; 1 GiB keeps a fast
+SSD busy for a few hundred milliseconds while the 2× rule still bounds the
+footprint (2 GiB free for the largest size). The benchmark creates a previously
+absent UUID-named workspace directly below the macOS temporary directory and
+writes only `sample.bin` (created with `O_EXCL`, mode 0600).
 
-Results report decimal bytes per second, elapsed read+write time,
-`writeWasSynchronized`, `readMayUseSystemCache`, and cleanup status with
-`BENCHMARK` provenance. Because the read immediately follows the write, it may
-measure cache performance rather than raw storage. No percentile, repeated-run,
-device-isolation, or explicit wall-clock-timeout statistic is produced.
+Three passes, each in 4 MiB page-aligned chunks:
+
+| Pass | How | Label in the UI |
+| --- | --- | --- |
+| Write | `F_NOCACHE` on the descriptor so pages do not stay resident, then `F_FULLFSYNC` (drive write cache flushed); `fsync(2)` only if the file system refuses, and the result says so | Write |
+| Uncached read | New descriptor with `F_NOCACHE` and `F_RDAHEAD` off, on pages that were never resident: bytes come from the device | Uncached read |
+| Cached read | Two consecutive normal reads; the second is reported and is served by the unified buffer cache | Cached read |
+
+Results report decimal bytes per second per pass, total elapsed time (all four
+reads/writes including the unreported warm-up pass), `writeWasSynchronized`,
+`writeUsedFullSync`, `writeBypassedCache` and cleanup status with `BENCHMARK`
+provenance. “Uncached” means the macOS buffer cache was bypassed; the drive's
+own DRAM/SLC cache, APFS compression and thermal state still influence the
+number, so it is a device-path figure, not raw media performance. Cancellation is
+checked between chunks; a cancelled run reports no rates and removes the
+workspace. No percentile, repeated-run, device-isolation or wall-clock-timeout
+statistic is produced.
 
 ## File activity
 

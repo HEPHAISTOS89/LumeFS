@@ -57,8 +57,10 @@ alert that used it.
   thresholds. Shown as unavailable, never simulated, on a pure client.
 - Current-user quota rows parsed into byte limits when recognized, with raw
   evidence fallback and an explicit unavailable state.
-- A 128 MiB bounded temporary-file benchmark with explicit `BENCHMARK`
-  provenance and cleanup status.
+- A bounded temporary-file benchmark (128–1,024 MiB, cancellable) that labels
+  three passes separately: uncached write with `F_FULLFSYNC`, uncached read
+  through `F_NOCACHE`, and cached read from the macOS buffer cache, with
+  explicit `BENCHMARK` provenance and cleanup status.
 - A workload-placement estimate with a 20% capacity margin and conservative current-user quota headroom when structured live limits match the volume.
 - Opt-in FSEvents monitoring that reports aggregate operations under a selected
   root label without displaying event paths or reading file contents.
@@ -213,8 +215,11 @@ defines the evidence required before release.
 - Alert history clear times are refresh times; an alert still open when the app
   quits is closed at the first refresh after relaunch. Acknowledging is
   bookkeeping only and does not stop a rule from firing.
-- Benchmark reads happen immediately after writes and may be served by the
-  macOS cache; results are not raw-device performance.
+- The benchmark's “uncached read” bypasses the macOS buffer cache
+  (`F_NOCACHE` on never-resident pages) but not the drive's own cache, APFS
+  compression or thermal state; the “cached read” is deliberately a
+  buffer-cache figure. Neither is raw-media performance or a multi-run
+  statistic.
 - FSEvents monitoring is opt-in and aggregate, but selected root labels can still
   disclose folder names in the Activity view.
 - The current test suite covers selected collectors, command shapes, benchmark

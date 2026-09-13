@@ -57,7 +57,8 @@ smallest supported 900 × 600 window and at the default size, verify:
 - keyboard shortcuts for refresh and Settings work;
 - accessible names/values exist for navigation, controls, status, charts, and
   sliders;
-- the 128 MiB benchmark reports completion and leaves no workspace;
+- the 128 MiB benchmark reports three labeled passes and leaves no workspace,
+  and Cancel during a 1,024 MiB run leaves no workspace either;
 - pNFS replay is visibly `REPLAY` and does not replace live counters;
 - opt-in FSEvents activity reports aggregate operations without an event path.
 
@@ -174,4 +175,5 @@ unsigned development builds.
 - pNFS counters are system-wide and cannot prove mount attribution or parallel
   data-server traffic;
 - block I/O is whole-device, not per-process or per-volume;
-- benchmark reads may be served by the macOS cache.
+- the benchmark's uncached read bypasses the macOS buffer cache but not the
+  drive's own cache; the cached read is a buffer-cache figure by design.

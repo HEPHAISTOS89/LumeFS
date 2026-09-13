@@ -125,11 +125,14 @@ final class CollectorIntegrationTests: XCTestCase {
         let result = try await DiskBenchmark().run(mebibytes: 1)
 
         XCTAssertEqual(result.byteCount, 1_048_576)
-        XCTAssertGreaterThan(result.readBytesPerSecond, 0)
+        XCTAssertEqual(result.mebibytes, 1)
+        XCTAssertGreaterThan(result.uncachedReadBytesPerSecond, 0)
+        XCTAssertGreaterThan(result.cachedReadBytesPerSecond, 0)
         XCTAssertGreaterThan(result.writeBytesPerSecond, 0)
+        XCTAssertGreaterThan(result.elapsedSeconds, 0)
         XCTAssertEqual(result.provenance, .benchmark)
         XCTAssertTrue(result.writeWasSynchronized)
-        XCTAssertTrue(result.readMayUseSystemCache)
+        XCTAssertTrue(result.writeBypassedCache)
         XCTAssertTrue(result.cleanupSucceeded)
     }
 }

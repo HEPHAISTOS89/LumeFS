@@ -1,6 +1,6 @@
 import Foundation
 import Observation
-import UserNotifications
+@preconcurrency import UserNotifications
 
 /// Opt-in bridge between raised critical alerts and the macOS notification center.
 ///

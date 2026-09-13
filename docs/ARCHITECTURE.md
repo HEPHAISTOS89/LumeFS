@@ -202,14 +202,19 @@ not a prediction of model growth or future free space.
 
 ### Controlled benchmark
 
-The Performance view runs a fixed 128 MiB benchmark. `DiskBenchmark` permits
-1–256 MiB internally, requires at least twice the requested size in reported
-free space, creates a previously absent UUID-named workspace directly below
-`FileManager.temporaryDirectory`, and writes deterministic bytes only to
-`sample.bin`. It synchronizes and immediately reads the file, then removes the
-file and workspace; a deferred workspace removal covers thrown errors. The
-immediate read may use the macOS cache. There is no explicit wall-clock timeout,
-so the size bound—not a time bound—limits the operation.
+The Performance view runs a 128, 256, 512 or 1,024 MiB benchmark (default
+128). `DiskBenchmark` permits 1–1,024 MiB internally, requires at least twice
+the requested size in reported free space, creates a previously absent
+UUID-named workspace directly below `FileManager.temporaryDirectory`, and
+writes deterministic bytes only to `sample.bin` through POSIX descriptors. The
+write uses `F_NOCACHE` and `F_FULLFSYNC` (falling back to `fsync`), the
+uncached read uses `F_NOCACHE` with read-ahead disabled on never-resident pages,
+and the cached read is the second of two normal passes. The store owns the
+benchmark `Task`; Cancel cancels it and `Task.checkCancellation()` between 4 MiB
+chunks stops the pass. A deferred workspace removal covers thrown errors and
+cancellation. There is still no explicit wall-clock timeout, so the size
+bound—and the user's Cancel—limit the operation. The passes block one
+cooperative-pool thread while they run.
 
 ### pNFS replay
 

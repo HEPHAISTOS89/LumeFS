@@ -89,6 +89,8 @@ final class MonitoringStore {
     @ObservationIgnored
     private var monitoringTask: Task<Void, Never>?
     @ObservationIgnored
+    private var benchmarkTask: Task<Void, Never>?
+    @ObservationIgnored
     private var fileActivityCollector: FileActivityCollector?
     @ObservationIgnored
     private var fileActivityTask: Task<Void, Never>?
@@ -295,27 +297,47 @@ final class MonitoringStore {
         apply(snapshot)
     }
 
-    func runBenchmark() async {
+    /// Starts the benchmark as an owned task so the UI can cancel it.
+    func startBenchmark(mebibytes: Int = BenchmarkGuard.defaultMebibytes) {
+        guard benchmarkTask == nil else { return }
+        benchmarkTask = Task { [weak self] in
+            await self?.runBenchmark(mebibytes: mebibytes)
+            self?.benchmarkTask = nil
+        }
+    }
+
+    func cancelBenchmark() {
+        benchmarkTask?.cancel()
+    }
+
+    func runBenchmark(mebibytes: Int = BenchmarkGuard.defaultMebibytes) async {
         guard !isBenchmarkRunning else { return }
 
         isBenchmarkRunning = true
         benchmarkError = nil
         benchmarkResult = nil
+        defer { isBenchmarkRunning = false }
 
         do {
-            let result = try await benchmark.run(mebibytes: 128)
+            let result = try await benchmark.run(mebibytes: mebibytes)
             benchmarkResult = result
             appendActivity(
                 displayPath: "Temporary workspace",
-                description: "Completed a bounded 128 MiB read/write benchmark.",
+                description: "Completed a bounded \(result.mebibytes) MiB benchmark: uncached write, uncached read, cached read; temporary file removed.",
                 provenance: .benchmark,
                 at: result.completedAt
+            )
+        } catch is CancellationError {
+            benchmarkError = "Benchmark cancelled. The temporary workspace was removed."
+            appendActivity(
+                displayPath: "Temporary workspace",
+                description: "Cancelled the \(mebibytes) MiB benchmark; temporary file removed.",
+                provenance: .benchmark,
+                at: Date()
             )
         } catch {
             benchmarkError = error.localizedDescription
         }
-
-        isBenchmarkRunning = false
     }
 
     func showPNFSReplay() {

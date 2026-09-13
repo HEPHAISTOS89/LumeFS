@@ -46,9 +46,10 @@ project remains a hackathon prototype.
   modify mounts/files. The separately triggered benchmark writes one temporary
   file as described below.
 - Manual benchmarking creates a fresh UUID-named workspace directly below the
-  system temporary directory, writes only `sample.bin`, enforces a 256 MiB
-  internal ceiling and two-times-free-space check, synchronizes the write, and
-  removes the file and workspace. The UI requests 128 MiB.
+  system temporary directory, writes only `sample.bin` (`O_EXCL`, mode 0600),
+  enforces a 1,024 MiB internal ceiling and two-times-free-space check,
+  flushes the write with `F_FULLFSYNC`, and removes the file and workspace on
+  success, error and cancellation. The UI offers 128 (default) to 1,024 MiB.
 - Opt-in FSEvents monitoring reports aggregate operations under a root label;
   emitted activity records do not contain individual event paths or contents.
 - Alert history is written to

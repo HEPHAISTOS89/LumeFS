@@ -14,9 +14,11 @@ before sharing the screen.
 5. Do not fill a disk, provoke storage errors, or create NFS failures for a demo.
 
 Use the app's **Run benchmark** button only if a synthetic storage operation is
-appropriate on the demo Mac. It writes and immediately reads one 128 MiB
-app-owned temporary file, synchronizes the write, and removes the file. The read
-may use the macOS cache; do not call it raw-device performance.
+appropriate on the demo Mac. It writes one app-owned temporary file (128 MiB by
+default) with the cache bypassed and `F_FULLFSYNC`, reads it once uncached
+(`F_NOCACHE`) and once from the macOS cache, labels the three figures
+separately, and removes the file. Say “device path, not raw media” for the
+uncached read; the drive's own cache still applies.
 
 ## Script
 
@@ -56,9 +58,9 @@ Open **Performance**. Optionally run the built-in bounded 128 MiB benchmark.
 > These are deltas from cumulative IOKit counters for whole storage devices.
 > They show machine-level pressure, not which process or model caused it.
 
-> The benchmark has its own BENCHMARK badge. The synchronized write is real, but
-> the immediate read may use cache, so this is a controlled comparison—not a
-> storage certification.
+> The benchmark has its own BENCHMARK badge. The write is flushed to the drive,
+> the uncached read bypasses the macOS cache, and the cached read shows what the
+> cache adds—a controlled comparison, not a storage certification.
 
 If no visible live-I/O change occurs, say so. Do not substitute replay or
 benchmark numbers.

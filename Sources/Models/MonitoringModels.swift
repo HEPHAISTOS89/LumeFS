@@ -553,14 +553,23 @@ struct ActivityEvent: Identifiable, Codable, Hashable, Sendable {
 
 struct BenchmarkResult: Codable, Hashable, Sendable {
     let byteCount: Int64
-    let readBytesPerSecond: Double
+    /// `F_NOCACHE` read of a file whose pages were never resident (uncached write
+    /// + full sync). Bytes came from the device; the drive's own cache still applies.
+    let uncachedReadBytesPerSecond: Double
+    /// Second consecutive normal read: served by the unified buffer cache.
+    let cachedReadBytesPerSecond: Double
     let writeBytesPerSecond: Double
     let elapsedSeconds: Double
     let completedAt: Date
     let provenance: DataProvenance
     let writeWasSynchronized: Bool
-    let readMayUseSystemCache: Bool
+    /// `F_FULLFSYNC` succeeded (drive write cache flushed). False means the file
+    /// system only offered `fsync(2)`.
+    let writeUsedFullSync: Bool
+    let writeBypassedCache: Bool
     let cleanupSucceeded: Bool
+
+    var mebibytes: Int { Int(byteCount / 1_048_576) }
 }
 
 struct CapacityThresholds: Equatable, Sendable {
