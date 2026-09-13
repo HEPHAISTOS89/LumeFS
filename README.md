@@ -254,9 +254,11 @@ defines the evidence required before release.
   names it. A same-volume copy frees nothing and becomes an APFS clone.
 - The current test suite covers selected collectors, command shapes, benchmark
   guardrails/cleanup, FSEvents aggregation/redaction, alert thresholds,
-  readiness calculations, formatting, structured quota rows, and NFS parsing.
-  It is not an end-to-end proof of every live collector, pNFS environment, or UI
-  flow.
+  readiness calculations, formatting, structured quota rows, NFS parsing, alert
+  history, exports, and the placement plan/copy against a temporary tree on
+  one APFS volume (so the same-volume clone path, not a cross-volume data
+  path). It is not an end-to-end proof of every live collector, pNFS
+  environment, or UI flow.
 
 ## Future work
 
