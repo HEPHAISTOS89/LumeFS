@@ -79,3 +79,38 @@ This section supersedes earlier counts for the updated local candidate, not the 
 - VoiceOver was activated through its first-run dialog and stopped afterward. Automated retrieval of spoken phrases failed; no claim of complete VoiceOver validation is made.
 
 No signed/notarized production binary is certified by these checks.
+
+## 2026-09-13 — portable build and correctness batch
+
+This batch was prepared by a cloud agent on a Linux host **without Xcode**. The
+only compiler and test runner available to it was the GitHub Actions
+`macos-15` (Xcode 16) job on pull request #2. Every claim below is either a CI
+result with a run ID or explicitly `NOT RUN`.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| `main` before the batch (`a974413`) on `macos-15` | **FAILED** to compile: `ToolbarSpacer` / `sharedBackgroundVisibility` need the macOS 26 SDK | run 34730395087 |
+| Batch 1 — compiler guard for macOS 26 symbols | Passed, 55 tests, 2 expected NFS skips | run 34731726706 |
+| Batch 2 — SMART classification | Passed, 60 tests, 2 expected NFS skips | run 34731795277 |
+| Batch 3 — IOKit deduplication | see the pull-request checks for the run that follows commit `36e7a69` | PR #2 |
+| Live SMART `Failing` device | `NOT RUN` — no failing device available; the rule is covered by unit tests only | — |
+| I/O trend comparison with `iostat` | `NOT RUN` in this environment; procedure below | — |
+| App launch, window sizes, Light/Dark, VoiceOver | `NOT RUN` — no macOS desktop in the agent environment | — |
+
+### Manual I/O trend comparison (to run on a Mac)
+
+The deduplicated “All devices” figure should follow the same trend as `iostat`
+for the internal disk. Exact equality is not expected: `iostat` samples on its
+own clock and reports KB/t and tps, while LumeFS reports bytes per second from
+`IOBlockStorageDriver` counters.
+
+```bash
+iostat -d -w 1 disk0
+```
+
+While a large file copies, compare `MB/s` from `iostat` with the LumeFS
+Performance view. Record the two series for ~30 s. Acceptance: the LumeFS total
+is within roughly ±20% of `iostat` and, above all, is **not** about twice the
+`iostat` figure, which was the symptom of the previous double counting. If a
+second whole device appears in `iostat -d` (external disk), add it to the
+comparison.

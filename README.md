@@ -193,6 +193,33 @@ defines the evidence required before release.
   It is not an end-to-end proof of every live collector, pNFS environment, or UI
   flow.
 
+## Future work
+
+Ordered by expected value for administrators of local AI storage. Items marked
+*platform* are limited by what macOS exposes, not by LumeFS.
+
+1. **Validated pNFS topology** (*platform*): the native macOS client does not
+   implement pNFS (`man 5 nfs`). LumeFS parses NFSv4.1 layout counters and ships
+   a visibly labeled replay. A real metadata/data-server validation needs a
+   different client or a sponsor-provided environment.
+2. **Per-user quota administration**: `quota` reports only the current user
+   without privileges. An explicit, permission-aware administrator path
+   (`repquota -a` on volumes with quotas enabled, or server-side reports for NFS)
+   is the next step; LumeFS will not request root silently.
+3. **Sustained multi-run benchmark** with percentiles, device isolation and an
+   explicit wall-clock budget, so GB/s claims can be defended beyond one bounded
+   run.
+4. **Alert delivery integrations** (log export to a SIEM, webhook or e-mail)
+   built on the local alert history, with the same opt-in and no-spam rules as
+   the macOS notifications.
+5. **APFS container view**: snapshots, encryption state and physical-store health
+   in one place, read-only, using `diskutil apfs list -plist`.
+6. **Time-to-full estimate** from the retained I/O and capacity history, labeled
+   `ESTIMATE`.
+7. **Comparative evaluation** of incident-diagnosis time against Activity Monitor
+   plus command-line tools, with the same tasks and operators, before claiming
+   any productivity gain.
+
 ## Project documents
 
 - [Architecture](docs/ARCHITECTURE.md)
