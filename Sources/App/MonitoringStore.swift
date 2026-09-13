@@ -55,6 +55,7 @@ final class MonitoringStore {
     private(set) var latestDeviceSamples: [DeviceIOSample] = []
     private(set) var ioHistory: [DeviceIOSample] = []
     private(set) var nfsMetrics = NFSClientMetrics.unavailable
+    private(set) var nfsMounts: [NFSMountInfo] = []
     private(set) var pNFSReplayMetrics: NFSClientMetrics?
     private(set) var pNFSReplayError: String?
     private(set) var quotas: [QuotaSnapshot] = []
@@ -91,6 +92,10 @@ final class MonitoringStore {
 
     var selectedVolume: VolumeSnapshot? {
         volumes.first { $0.id == selectedVolumeID }
+    }
+
+    func nfsMount(for volume: VolumeSnapshot) -> NFSMountInfo? {
+        nfsMounts.first { $0.mountPoint == volume.mountPoint }
     }
 
     var selectedAlert: MonitoringAlert? {
@@ -275,6 +280,7 @@ final class MonitoringStore {
         volumes = snapshot.volumes
         latestDeviceSamples = snapshot.deviceSamples
         nfsMetrics = snapshot.nfsMetrics
+        nfsMounts = snapshot.nfsMounts
         quotas = snapshot.quotas
         alerts = snapshot.alerts
         lastUpdated = snapshot.capturedAt

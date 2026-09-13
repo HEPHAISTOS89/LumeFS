@@ -138,6 +138,54 @@ final class AlertRuleEngineTests: XCTestCase {
         XCTAssertTrue(alerts.contains { $0.ruleID == "volume.capacity.critical" })
     }
 
+    func testNFSMountStatusFlagsRaiseKernelBackedAlerts() {
+        let nfsVolume = VolumeSnapshot(
+            id: "nfs-1", name: "models", mountPoint: "/Volumes/models", source: "nas.lab.example:/export/models",
+            fileSystem: .nfs, fileSystemName: "nfs", totalBytes: 1_000, availableBytes: 900,
+            isReadOnly: false, isLocal: false, capturedAt: Date()
+        )
+        let cases: [([String], String, HealthSeverity)] = [
+            (["dead"], "nfs.mount.dead", .critical),
+            (["not responding"], "nfs.mount.not_responding", .critical),
+            (["dead", "not responding"], "nfs.mount.dead", .critical),
+            (["recovery"], "nfs.mount.recovery", .warning)
+        ]
+        for (flags, rule, severity) in cases {
+            let alerts = AlertRuleEngine().evaluate(
+                volumes: [nfsVolume], samples: [], nfs: .unavailable, previousNFS: nil,
+                nfsMounts: [makeMount(statusFlags: flags)]
+            )
+            XCTAssertEqual(alerts.count, 1, "flags \(flags)")
+            XCTAssertEqual(alerts.first?.ruleID, rule)
+            XCTAssertEqual(alerts.first?.severity, severity)
+            XCTAssertEqual(alerts.first?.relatedVolumeID, "nfs-1")
+            XCTAssertEqual(alerts.first?.evidence, "Status flags: \(flags.joined(separator: ", "))")
+            XCTAssertEqual(alerts.first?.provenance, .live)
+        }
+    }
+
+    func testRespondingOrUnavailableNFSMountRaisesNothing() {
+        let healthy = makeMount(statusFlags: [])
+        let unavailable = NFSMountInfo.unavailable(
+            mountPoint: "/Volumes/models", source: "nas.lab.example:/export/models",
+            message: "nfsstat exited with status 1", at: Date()
+        )
+        let alerts = AlertRuleEngine().evaluate(
+            volumes: [], samples: [], nfs: .unavailable, previousNFS: nil,
+            nfsMounts: [healthy, unavailable]
+        )
+        XCTAssertTrue(alerts.isEmpty, "got \(alerts.map(\.ruleID))")
+    }
+
+    private func makeMount(statusFlags: [String]) -> NFSMountInfo {
+        NFSMountInfo(
+            id: "/Volumes/models", mountPoint: "/Volumes/models", source: "nas.lab.example:/export/models",
+            server: "nas.lab.example", export: "/export/models", addresses: ["192.0.2.10"],
+            nfsVersion: "4.1", transport: "tcp", parameters: ["vers=4.1", "tcp"], mountFlags: [],
+            statusFlags: statusFlags, capturedAt: Date(), provenance: .live, message: nil
+        )
+    }
+
     private func makeVolume(total: Int64, available: Int64, smartStatus: String? = "Verified") -> VolumeSnapshot {
         VolumeSnapshot(
             id: "test",

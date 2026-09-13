@@ -214,6 +214,81 @@ struct NFSClientMetrics: Codable, Hashable, Sendable {
     }
 }
 
+/// Per-mount NFS information as reported by `nfsstat -m` for a single mount point.
+///
+/// Values are the client's view of the mount (server name, export path, negotiated
+/// parameters and kernel status flags). They are not throughput counters, which macOS
+/// only exposes client-wide (`NFSClientMetrics`).
+struct NFSMountInfo: Identifiable, Codable, Hashable, Sendable {
+    let id: String
+    let mountPoint: String
+    let source: String
+    let server: String?
+    let export: String?
+    let addresses: [String]
+    let nfsVersion: String?
+    let transport: String?
+    let parameters: [String]
+    let mountFlags: [String]
+    let statusFlags: [String]
+    let capturedAt: Date
+    let provenance: DataProvenance
+    let message: String?
+
+    static func unavailable(
+        mountPoint: String,
+        source: String,
+        message: String,
+        at date: Date
+    ) -> NFSMountInfo {
+        NFSMountInfo(
+            id: mountPoint,
+            mountPoint: mountPoint,
+            source: source,
+            server: nil,
+            export: nil,
+            addresses: [],
+            nfsVersion: nil,
+            transport: nil,
+            parameters: [],
+            mountFlags: [],
+            statusFlags: [],
+            capturedAt: date,
+            provenance: .unavailable,
+            message: message
+        )
+    }
+
+    /// Kernel flags emitted by `nfsstat -m` (`NFS_MIFLAG_DEAD`, `NFS_MIFLAG_NOTRESP`,
+    /// `NFS_MIFLAG_RECOVERY`). Missing flags on an UNAVAILABLE record mean "unknown",
+    /// not "healthy".
+    var isDead: Bool { statusFlags.contains("dead") }
+    var isNotResponding: Bool { statusFlags.contains("not responding") }
+    var inRecovery: Bool { statusFlags.contains("recovery") }
+
+    var isResponding: Bool {
+        provenance == .live && !isDead && !isNotResponding
+    }
+
+    var statusLabel: String {
+        guard provenance == .live else { return "Unavailable" }
+        if isDead { return "Dead" }
+        if isNotResponding { return "Not responding" }
+        if inRecovery { return "Recovering" }
+        return "Responding"
+    }
+
+    var displayServer: String {
+        server ?? source.split(separator: ":", maxSplits: 1).first.map(String.init) ?? source
+    }
+
+    var displayExport: String {
+        if let export { return export }
+        let parts = source.split(separator: ":", maxSplits: 1)
+        return parts.count == 2 ? String(parts[1]) : source
+    }
+}
+
 struct QuotaSnapshot: Identifiable, Codable, Hashable, Sendable {
     let id: String
     let subject: String
@@ -325,9 +400,28 @@ struct SystemSnapshot: Sendable {
     let volumes: [VolumeSnapshot]
     let deviceSamples: [DeviceIOSample]
     let nfsMetrics: NFSClientMetrics
+    let nfsMounts: [NFSMountInfo]
     let quotas: [QuotaSnapshot]
     let alerts: [MonitoringAlert]
     let capturedAt: Date
+
+    init(
+        volumes: [VolumeSnapshot],
+        deviceSamples: [DeviceIOSample],
+        nfsMetrics: NFSClientMetrics,
+        nfsMounts: [NFSMountInfo] = [],
+        quotas: [QuotaSnapshot],
+        alerts: [MonitoringAlert],
+        capturedAt: Date
+    ) {
+        self.volumes = volumes
+        self.deviceSamples = deviceSamples
+        self.nfsMetrics = nfsMetrics
+        self.nfsMounts = nfsMounts
+        self.quotas = quotas
+        self.alerts = alerts
+        self.capturedAt = capturedAt
+    }
 }
 
 /// Separate series prevent a line from implying measurements across a collection gap.

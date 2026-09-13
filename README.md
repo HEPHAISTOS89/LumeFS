@@ -43,6 +43,9 @@ alert that used it.
   `diskutil` provides those fields.
 - Whole-device read/write rates and error counters from IOKit.
 - System-wide NFS client RPC and NFSv4.1 layout counters from `nfsstat`.
+- Per-mount NFS information (server, export, version, transport, mount
+  parameters, kernel `dead` / `not responding` / `recovery` flags) from
+  `nfsstat -m`, with alerts driven only by those kernel flags.
 - Current-user quota rows parsed into byte limits when recognized, with raw
   evidence fallback and an explicit unavailable state.
 - A 128 MiB bounded temporary-file benchmark with explicit `BENCHMARK`
@@ -86,10 +89,11 @@ LumeFS uses no third-party runtime dependencies.
 | APFS metadata | `/usr/sbin/diskutil info -plist` | One discovered APFS mount at a time |
 | Block I/O | IOKit `IOMedia` statistics | Whole devices, not individual processes or files |
 | NFS client metrics | `/usr/bin/nfsstat -f JSON -c` | System-wide cumulative client counters |
+| NFS mount information | `/usr/bin/nfsstat -m -f JSON <mount point>` | One discovered NFS mount at a time: server, export, version, transport, parameters, kernel status flags |
 | Quota status | `/usr/bin/quota -uv` | Current user; recognized local/remote rows plus raw fallback |
 
-The refresh loop runs once per second. Block I/O is sampled each refresh; mounts
-and APFS metadata are refreshed every 10 cycles, NFS every 3 cycles, and quota
+The refresh loop runs once per second. Block I/O is sampled each refresh; mounts,
+APFS metadata and NFS mount information are refreshed every 10 cycles, NFS client counters every 3 cycles, and quota
 every 30 cycles after their initial collection.
 
 Read [Architecture](docs/ARCHITECTURE.md) for the component and trust-boundary

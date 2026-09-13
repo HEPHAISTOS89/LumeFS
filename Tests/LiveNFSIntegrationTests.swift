@@ -51,4 +51,23 @@ final class LiveNFSIntegrationTests: XCTestCase {
         XCTAssertGreaterThan(metrics.readOperations, 0)
         XCTAssertFalse(metrics.pNFSObserved)
     }
+
+    func testLiveMountInformationDescribesTheLabMount() async throws {
+        let mount = try requiredLabMount
+        let volumes = MountCollector().collect().filter { $0.mountPoint == mount }
+
+        let mounts = await NFSMountCollector(
+            commandRunner: SystemCommandRunner()
+        ).collect(volumes: volumes)
+
+        XCTAssertEqual(mounts.count, 1)
+        let info = try XCTUnwrap(mounts.first)
+        XCTAssertEqual(info.provenance, .live, info.message ?? "")
+        XCTAssertEqual(info.mountPoint, mount)
+        XCTAssertEqual(info.displayServer, "127.0.0.1")
+        XCTAssertEqual(info.nfsVersion, "3")
+        XCTAssertEqual(info.transport, "tcp")
+        XCTAssertTrue(info.parameters.contains("soft"), "\(info.parameters)")
+        XCTAssertTrue(info.isResponding, "\(info.statusFlags)")
+    }
 }

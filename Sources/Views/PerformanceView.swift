@@ -208,8 +208,34 @@ struct PerformanceView: View {
                 }
             }
 
+            if !store.nfsMounts.isEmpty {
+                mountList
+            }
+
             Divider()
             replaySection
+        }
+    }
+
+    private var mountList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Mounts").font(.callout.weight(.medium))
+            ForEach(store.nfsMounts) { mount in
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    ProductIcon(systemName: mount.isResponding ? "network" : "network.slash")
+                        .foregroundStyle(mount.isResponding ? Color.secondary : Color.red)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(mount.mountPoint).font(.callout.monospaced())
+                        Text("\(mount.displayServer):\(mount.displayExport) · \(mount.nfsVersion.map { "NFSv\($0)" } ?? "version not reported") · \(mount.statusLabel)")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ProvenanceBadge(provenance: mount.provenance)
+                }
+                .accessibilityElement(children: .combine)
+            }
+            Text("Per-mount throughput is not exposed by macOS; counters above are client-wide.")
+                .font(.caption).foregroundStyle(.secondary)
         }
     }
 

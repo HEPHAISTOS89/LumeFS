@@ -104,6 +104,30 @@ The bundled preview parses fixed JSON with `REPLAY` provenance. Replay counters
 demonstrate parsing and presentation only and never replace the live counter
 block.
 
+## NFS mount information
+
+`nfsstat -m -f JSON <mount point>` is run once per discovered NFS mount, at the
+mount-table cadence (every 10 cycles). Apple's `nfsstat` nests one dictionary per
+mount under the mount source (`server:/export`); LumeFS reads the entry whose
+`Mount Point` matches the queried path.
+
+| Model field | Parsed source |
+| --- | --- |
+| Server, export, addresses | `Current mount parameters` (fallback `Original mount options`) → `File system locations[0]` → `Server`, `Export`, `Locations` |
+| NFS version | `NFS parameters` entry `vers=…` (for example `3`, `4.1`) |
+| Transport | First `NFS parameters` entry among `tcp`, `udp`, `tcp4`, `tcp6`, `udp4`, `udp6`, `ticlts`, `ticotsord` |
+| Parameters, mount flags | `NFS parameters`, `General mount flags` → `Flags` |
+| Status flags | `Status flags` → `Flags`: `dead`, `not responding`, `recovery` (kernel `NFS_MIFLAG_*`) |
+
+A record is `LIVE` only when `nfsstat` exited 0 and returned a mount dictionary.
+Command failure, empty output (`{}`), or a parse error produces one
+`UNAVAILABLE` record per mount that keeps the mount point and the error text;
+an `UNAVAILABLE` record never reads as “Responding”.
+
+These are the client's negotiated parameters and kernel state, not per-mount
+throughput. macOS does not expose per-mount byte or operation counters; the
+client-wide counters above remain the only NFS traffic figures.
+
 ## Quota
 
 `quota -uv` is run for the current user. Recognized filesystem rows use the first
@@ -130,6 +154,14 @@ Review it before publishing screenshots.
 | `device.io.errors` | Read errors + write errors is greater than zero | Critical |
 | `nfs.rpc.retries` | Cumulative NFS retries increased since the prior live NFS sample | Warning |
 | `nfs.rpc.timeout` | Cumulative NFS timeouts increased since the prior live NFS sample | Critical |
+| `nfs.mount.dead` | A `LIVE` mount record carries the kernel flag `dead` | Critical |
+| `nfs.mount.not_responding` | A `LIVE` mount record carries `not responding` (and not `dead`) | Critical |
+| `nfs.mount.recovery` | A `LIVE` mount record carries `recovery` only | Warning |
+
+One mount raises at most one mount-state alert per refresh (`dead` outranks `not
+responding`, which outranks `recovery`). `UNAVAILABLE` mount records raise
+nothing. Mount-state alerts carry `relatedVolumeID` of the volume with the same
+mount point.
 
 `Not Supported`, `Unknown` and empty SMART values raise no alert: they mean the
 device or bridge exposes no SMART data, not that the device is failing. A SMART

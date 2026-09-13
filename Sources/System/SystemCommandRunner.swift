@@ -141,7 +141,11 @@ actor SystemCommandRunner {
                 throw CommandRunnerError.invalidArgument
             }
         case .nfsstat:
-            guard arguments == ["-f", "JSON", "-c"] else {
+            let isClientCounters = arguments == ["-f", "JSON", "-c"]
+            let isSingleMountInfo = arguments.count == 4
+                && Array(arguments[0..<3]) == ["-m", "-f", "JSON"]
+                && arguments[3].hasPrefix("/")
+            guard isClientCounters || isSingleMountInfo else {
                 throw CommandRunnerError.invalidArgument
             }
         case .quota:

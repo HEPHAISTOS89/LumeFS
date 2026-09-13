@@ -8,6 +8,7 @@ actor MonitoringEngine {
 
     private var cachedVolumes: [VolumeSnapshot] = []
     private var cachedNFS = NFSClientMetrics.unavailable
+    private var cachedNFSMounts: [NFSMountInfo] = []
     private var cachedQuotas: [QuotaSnapshot] = []
     private var previousNFS: NFSClientMetrics?
     private var refreshCount = 0
@@ -23,6 +24,11 @@ actor MonitoringEngine {
             cachedVolumes = await APFSMetadataCollector(
                 commandRunner: commandRunner
             ).enrich(volumes)
+            // Same cadence as the mount table: mount parameters and status flags
+            // only change on remount or when the kernel marks the server unreachable.
+            cachedNFSMounts = await NFSMountCollector(
+                commandRunner: commandRunner
+            ).collect(volumes: cachedVolumes, at: now)
         }
 
         if refreshCount == 1 || refreshCount.isMultiple(of: 3) {
@@ -46,13 +52,15 @@ actor MonitoringEngine {
             nfs: cachedNFS,
             previousNFS: previousNFS,
             capacityThresholds: thresholds,
-            quotas: cachedQuotas
+            quotas: cachedQuotas,
+            nfsMounts: cachedNFSMounts
         )
 
         return SystemSnapshot(
             volumes: cachedVolumes,
             deviceSamples: currentSamples,
             nfsMetrics: cachedNFS,
+            nfsMounts: cachedNFSMounts,
             quotas: cachedQuotas,
             alerts: alerts,
             capturedAt: now

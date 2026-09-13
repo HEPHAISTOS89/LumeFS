@@ -7,10 +7,12 @@ struct AlertRuleEngine: Sendable {
         nfs: NFSClientMetrics,
         previousNFS: NFSClientMetrics?,
         capacityThresholds: CapacityThresholds = .default,
-        quotas: [QuotaSnapshot] = []
+        quotas: [QuotaSnapshot] = [],
+        nfsMounts: [NFSMountInfo] = []
     ) -> [MonitoringAlert] {
         var alerts = volumeAlerts(volumes, thresholds: capacityThresholds)
         alerts.append(contentsOf: deviceAlerts(samples))
+        alerts.append(contentsOf: nfsMountAlerts(nfsMounts, volumes: volumes))
         alerts.append(contentsOf: quotas.compactMap { quota in
             guard let severity = quota.limitSeverity else { return nil }
             return MonitoringAlert(
@@ -136,6 +138,64 @@ struct AlertRuleEngine: Sendable {
                 createdAt: sample.timestamp,
                 provenance: .live
             )
+        }
+    }
+
+    /// Kernel-reported mount state from `nfsstat -m`. Only LIVE records with an
+    /// explicit flag raise anything; an UNAVAILABLE record is missing evidence.
+    private func nfsMountAlerts(
+        _ mounts: [NFSMountInfo],
+        volumes: [VolumeSnapshot]
+    ) -> [MonitoringAlert] {
+        mounts.compactMap { mount -> MonitoringAlert? in
+            guard mount.provenance == .live else { return nil }
+            let volumeID = volumes.first { $0.mountPoint == mount.mountPoint }?.id
+            let target = "\(mount.displayServer):\(mount.displayExport)"
+            let flags = mount.statusFlags.joined(separator: ", ")
+
+            if mount.isDead {
+                return MonitoringAlert(
+                    id: "nfs-mount-dead-\(mount.id)",
+                    ruleID: "nfs.mount.dead",
+                    severity: .critical,
+                    title: "NFS mount is dead",
+                    message: "\(mount.mountPoint) (\(target)) was marked dead by the kernel.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Operations on this mount will fail. Unmount it, restore the server, and mount again.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            if mount.isNotResponding {
+                return MonitoringAlert(
+                    id: "nfs-mount-notresp-\(mount.id)",
+                    ruleID: "nfs.mount.not_responding",
+                    severity: .critical,
+                    title: "NFS server not responding",
+                    message: "\(mount.mountPoint) (\(target)) is not responding.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Pause checkpoint writes to this mount and check the server and network path.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            if mount.inRecovery {
+                return MonitoringAlert(
+                    id: "nfs-mount-recovery-\(mount.id)",
+                    ruleID: "nfs.mount.recovery",
+                    severity: .warning,
+                    title: "NFS mount is recovering",
+                    message: "\(mount.mountPoint) (\(target)) is in state recovery.",
+                    evidence: "Status flags: \(flags)",
+                    recommendation: "Expect latency until recovery completes. Avoid starting new large writes.",
+                    relatedVolumeID: volumeID,
+                    createdAt: mount.capturedAt,
+                    provenance: .live
+                )
+            }
+            return nil
         }
     }
 

@@ -91,6 +91,24 @@ final class SystemCommandRunnerTests: XCTestCase {
         await XCTAssertNoThrowAsync {
             try await self.runner.validate(.quota, arguments: ["-uv"])
         }
+        await XCTAssertNoThrowAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "/Volumes/models"])
+        }
+    }
+
+    func testRejectsNFSMountQueriesOutsideTheSingleMountShape() async {
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "Volumes/models"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "/a", "/b"])
+        }
+        await XCTAssertThrowsErrorAsync {
+            try await self.runner.validate(.nfsstat, arguments: ["-m", "-f", "JSON", "-z"])
+        }
     }
 
     func testRejectsUnexpectedOptionsAndControlCharacters() async {

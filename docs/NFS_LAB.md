@@ -73,10 +73,15 @@ Do not infer pNFS support from any of these facts.
 ```bash
 ./scripts/nfs_lab.sh status
 /usr/bin/nfsstat -f JSON -c
+/usr/bin/nfsstat -m -f JSON "/private/var/tmp/com.hephaistos.LumeFS.nfs-lab.$(id -u)/mount"
 ```
 
 Do not publish raw command output without reviewing hostnames, mount names, and
 other client activity. NFS counters are system-wide, not isolated to the lab.
+The `-m` output is the same document `NFSMountCollector` parses; with the lab
+mounted, `LiveNFSIntegrationTests.testLiveMountInformationDescribesTheLabMount`
+checks that it reports `127.0.0.1`, `vers=3`, `tcp`, `soft` and no `dead` /
+`not responding` flag.
 
 ## 5. Roll back
 

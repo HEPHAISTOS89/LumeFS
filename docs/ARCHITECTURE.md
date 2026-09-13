@@ -17,6 +17,7 @@ MonitoringEngine (actor)
     ├── APFSMetadataCollector ────── diskutil info -plist
     ├── BlockIOCollector (actor) ─── IOKit IOMedia statistics
     ├── NFSCollector ─────────────── nfsstat -f JSON -c
+    ├── NFSMountCollector ────────── nfsstat -m -f JSON <mount point>
     ├── QuotaCollector ───────────── quota -uv
     └── AlertRuleEngine ──────────── deterministic rules
 
@@ -115,6 +116,21 @@ The counters are cumulative at the client level. The engine compares retry and
 timeout counters every NFS collection interval to create alerts. They are not
 attributed to a specific server or mount.
 
+### NFSMountCollector
+
+For each volume whose file system is NFS, the collector executes
+`/usr/bin/nfsstat -m -f JSON <mount point>` (one mount per invocation, because
+Apple's JSON printer keys mounts by their source string and would collapse two
+mounts of the same export). It parses the server, export, addresses, negotiated
+parameters (`vers=`, transport, `rsize=`, …), general mount flags and the kernel
+status flags `dead`, `not responding`, `recovery`. Failure produces one
+`UNAVAILABLE` record per mount that retains the reason. Records are refreshed
+with the mount table (every 10 cycles) and feed the `nfs.mount.*` alert rules and
+the “NFS mount” panel of the volume detail. The JSON layout was taken from
+apple-oss-distributions/NFS (`nfsstat.c`, `printer.c`); unit fixtures are derived
+from that source and anonymized, and the opt-in loopback lab exercises the live
+path.
+
 ### QuotaCollector
 
 The collector executes `/usr/bin/quota -uv`. It recognizes ordinary and wrapped
@@ -195,8 +211,10 @@ control-character, and over-4,096-byte arguments; enforces exact argument shapes
 for each executable; supplies only `HOME`, a system-only `PATH`, and C locale
 variables; terminates a command after five seconds with SIGTERM followed by
 SIGKILL after 200 ms if needed; and rejects stdout or stderr larger than one MiB.
-Mount points discovered from the operating system can reach `diskutil` as the
-only variable argument and must begin with `/`.
+Mount points discovered from the operating system are the only variable
+arguments: they reach `diskutil info -plist <path>` and
+`nfsstat -m -f JSON <path>` and must begin with `/`. Every other argument list is
+matched exactly (`nfsstat -f JSON -c`, `quota -uv`).
 
 The runner does not canonicalize that absolute mount path. Output-size
 enforcement occurs after process exit. Those remaining gaps matter if future UI,

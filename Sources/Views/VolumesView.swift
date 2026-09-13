@@ -32,6 +32,7 @@ struct VolumesView: View {
                     VolumeDetailView(
                         volume: volume,
                         quota: quota(for: volume),
+                        nfsMount: store.nfsMount(for: volume),
                         showPerformance: { store.selectedSection = .performance }
                     )
                 } else {
@@ -91,6 +92,7 @@ struct VolumesView: View {
 private struct VolumeDetailView: View {
     let volume: VolumeSnapshot
     let quota: QuotaSnapshot?
+    let nfsMount: NFSMountInfo?
     let showPerformance: () -> Void
 
     var body: some View {
@@ -98,6 +100,9 @@ private struct VolumeDetailView: View {
             VStack(alignment: .leading, spacing: LayoutMetrics.sectionSpacing) {
                 identity
                 capacity
+                if volume.fileSystem == .nfs {
+                    nfsMountSection
+                }
                 quotaSection
                 Button(action: showPerformance) {
                     ProductLabel("View all-device I/O", systemImage: "chart.xyaxis.line")
@@ -181,6 +186,65 @@ private struct VolumeDetailView: View {
             }
             .padding(.vertical, 6)
         }
+    }
+
+    private var nfsMountSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("NFS mount").font(.headline).accessibilityAddTraits(.isHeader)
+            HStack(alignment: .top, spacing: 10) {
+                ProductIcon(systemName: nfsMountSymbol)
+                    .foregroundStyle(nfsMountTint)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(nfsMount?.statusLabel ?? "Not queried yet")
+                        .fontWeight(.medium)
+                        .foregroundStyle(nfsMountTint)
+                    if let nfsMount, nfsMount.provenance == .live {
+                        VStack(alignment: .leading, spacing: 6) {
+                            detailRow("Server", nfsMount.displayServer)
+                            detailRow("Export", nfsMount.displayExport)
+                            detailRow("Version", nfsMount.nfsVersion.map { "NFSv\($0)" } ?? "Not reported")
+                            detailRow("Transport", nfsMount.transport?.uppercased() ?? "Not reported")
+                            if !nfsMount.addresses.isEmpty {
+                                detailRow("Addresses", nfsMount.addresses.joined(separator: ", "))
+                            }
+                        }
+                        if !nfsMount.parameters.isEmpty || !nfsMount.mountFlags.isEmpty {
+                            DisclosureGroup("Mount parameters") {
+                                Text((nfsMount.mountFlags + nfsMount.parameters).joined(separator: ", "))
+                                    .font(.caption.monospaced())
+                                    .foregroundStyle(.secondary)
+                                    .textSelection(.enabled)
+                                    .padding(.top, 4)
+                            }
+                        }
+                    } else {
+                        Text(nfsMount?.message ?? "Mount parameters are read from nfsstat every 10 s.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text("Status flags come from the kernel (dead, not responding, recovery). Throughput is not attributable per mount on macOS.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                ProvenanceBadge(provenance: nfsMount?.provenance ?? .unavailable)
+            }
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var nfsMountSymbol: String {
+        guard let nfsMount, nfsMount.provenance == .live else { return "network.badge.shield.half.filled" }
+        if nfsMount.isDead || nfsMount.isNotResponding { return "network.slash" }
+        if nfsMount.inRecovery { return "arrow.triangle.2.circlepath" }
+        return "network"
+    }
+
+    private var nfsMountTint: Color {
+        guard let nfsMount, nfsMount.provenance == .live else { return .secondary }
+        if nfsMount.isDead || nfsMount.isNotResponding { return .red }
+        if nfsMount.inRecovery { return .orange }
+        return .primary
     }
 
     private func quotaSummary(
