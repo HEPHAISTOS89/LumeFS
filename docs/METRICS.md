@@ -52,6 +52,19 @@ IOKit cumulative counters are sampled for whole `IOMedia` devices:
 rate = (current counter - previous counter) / elapsed seconds
 ```
 
+Each whole media is traced up the IOKit service plane to the first
+`IOBlockStorageDriver`, whose `Statistics` dictionary supplies the counters. An
+APFS container (`disk3`) synthesized above a physical store (`disk0`) reaches the
+same driver, so the collector keeps only one media per driver registry ID: the
+shallowest one (the physical whole disk), with the BSD name as tie-breaker. Media
+without an identifiable driver fall back to a recursive property search and are
+treated as independent sources. Without this rule the “All devices” total would
+count internal SSD traffic twice.
+
+The result is still a whole-device figure. It is not compared automatically with
+`iostat`; the maintainer validation record describes the manual trend comparison
+(`iostat -d -w 1`) and its tolerance.
+
 The app reports read bytes/s, write bytes/s, read/write operations/s, cumulative
 errors, and cumulative retries. The first sample and any counter rollback yield
 a zero rate.
@@ -110,12 +123,17 @@ Review it before publishing screenshots.
 
 | Rule ID | Trigger | Severity |
 | --- | --- | --- |
-| `device.smart.unhealthy` | SMART text exists and is not case-insensitively equal to `Verified` | Critical |
+| `device.smart.unhealthy` | SMART text contains explicit failure wording (`fail`, `fault`, `error`, `critical`, `degrad`, `warn`, `bad`, `predict`) | Critical |
+| `device.smart.unrecognized` | SMART text is present, is not `Verified`, is not a known “no data” value (`Not Supported`, `Unknown`, empty) and contains no failure wording | Notice |
 | `volume.capacity.warning` | Free fraction is below the configured warning level but not the critical level | Warning |
 | `volume.capacity.critical` | Free fraction is below the configured critical level | Critical |
 | `device.io.errors` | Read errors + write errors is greater than zero | Critical |
 | `nfs.rpc.retries` | Cumulative NFS retries increased since the prior live NFS sample | Warning |
 | `nfs.rpc.timeout` | Cumulative NFS timeouts increased since the prior live NFS sample | Critical |
+
+`Not Supported`, `Unknown` and empty SMART values raise no alert: they mean the
+device or bridge exposes no SMART data, not that the device is failing. A SMART
+alert and a capacity alert can coexist for the same volume.
 
 Threshold comparisons are strict. Defaults are 20% warning and 10% critical;
 Settings can change them. The model clamps warning to 1–95%, critical to 1%–the

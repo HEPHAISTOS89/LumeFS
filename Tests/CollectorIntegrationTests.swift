@@ -24,6 +24,55 @@ final class CollectorIntegrationTests: XCTestCase {
         XCTAssertTrue(IOChartPoint.make(from: []).isEmpty)
     }
 
+    func testDeduplicationKeepsOneMediaPerStorageDriver() {
+        let physical = counters(at: 1, bytes: 1_000)
+        let synthesized = counters(at: 1, bytes: 1_000)
+        let external = counters(at: 1, bytes: 42)
+        let orphan = counters(at: 1, bytes: 7)
+
+        let result = BlockIOCollector.deduplicate([
+            MediaCandidate(bsdName: "disk3", statisticsOwnerID: 100, depth: 4, counters: synthesized),
+            MediaCandidate(bsdName: "disk0", statisticsOwnerID: 100, depth: 1, counters: physical),
+            MediaCandidate(bsdName: "disk5", statisticsOwnerID: 200, depth: 1, counters: external),
+            MediaCandidate(bsdName: "disk9", statisticsOwnerID: nil, depth: 0, counters: orphan)
+        ])
+
+        XCTAssertEqual(Set(result.keys), ["disk0", "disk5", "disk9"])
+        XCTAssertEqual(result["disk0"]?.bytesRead, 1_000)
+        XCTAssertEqual(result["disk5"]?.bytesRead, 42)
+        XCTAssertEqual(result["disk9"]?.bytesRead, 7)
+        XCTAssertEqual(result.values.reduce(0) { $0 + $1.bytesRead }, 1_049, "Shared counters must be summed once")
+    }
+
+    func testDeduplicationTieBreaksOnBSDNameDeterministically() {
+        let shared = counters(at: 1, bytes: 5)
+        let forward = BlockIOCollector.deduplicate([
+            MediaCandidate(bsdName: "disk10", statisticsOwnerID: 1, depth: 2, counters: shared),
+            MediaCandidate(bsdName: "disk2", statisticsOwnerID: 1, depth: 2, counters: shared)
+        ])
+        let reversed = BlockIOCollector.deduplicate([
+            MediaCandidate(bsdName: "disk2", statisticsOwnerID: 1, depth: 2, counters: shared),
+            MediaCandidate(bsdName: "disk10", statisticsOwnerID: 1, depth: 2, counters: shared)
+        ])
+        XCTAssertEqual(Array(forward.keys), ["disk2"])
+        XCTAssertEqual(Array(reversed.keys), ["disk2"])
+    }
+
+    func testDeduplicationOfEmptyInputIsEmpty() {
+        XCTAssertTrue(BlockIOCollector.deduplicate([]).isEmpty)
+    }
+
+    func testLiveWholeDeviceSamplesDoNotRepeatAStatisticsSource() async throws {
+        // Two collections are needed for rates; the second must contain no more
+        // devices than the number of distinct physical stores plus orphans.
+        let collector = BlockIOCollector()
+        _ = await collector.collect(at: Date())
+        try await Task.sleep(for: .milliseconds(50))
+        let samples = await collector.collect(at: Date())
+        let names = samples.map(\.deviceName)
+        XCTAssertEqual(Set(names).count, names.count, "Device names must be unique")
+    }
+
     private func counters(at seconds: TimeInterval, bytes: UInt64) -> DeviceCounters {
         DeviceCounters(capturedAt: Date(timeIntervalSince1970: seconds),
                        bytesRead: bytes, bytesWritten: bytes, readOperations: 0,

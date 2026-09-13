@@ -13,11 +13,27 @@ struct DeviceCounters: Sendable {
     let writeRetries: UInt64
 }
 
+/// One whole `IOMedia` object together with the identity of the driver that owns the
+/// statistics it exposes. Several media can share one driver: an APFS container
+/// (`disk3`) is synthesized above the physical store (`disk0`) and walking the IOKit
+/// parent chain from either reaches the same `IOBlockStorageDriver`. Counting both
+/// would double every byte.
+struct MediaCandidate: Sendable {
+    let bsdName: String
+    /// `IORegistryEntryID` of the `IOBlockStorageDriver` that supplied the counters,
+    /// or `nil` when no driver was found and the media is treated as its own source.
+    let statisticsOwnerID: UInt64?
+    /// Parent hops between the media and the statistics owner. The physical whole
+    /// disk sits directly below its driver (depth 1); synthesized media are deeper.
+    let depth: Int
+    let counters: DeviceCounters
+}
+
 actor BlockIOCollector {
     private var previousCounters: [String: DeviceCounters] = [:]
 
     func collect(at date: Date = Date()) -> [DeviceIOSample] {
-        let currentCounters = readCounters(at: date)
+        let currentCounters = Self.deduplicate(readCandidates(at: date))
         defer { previousCounters = currentCounters }
 
         return currentCounters.compactMap { deviceName, current in
@@ -52,8 +68,38 @@ actor BlockIOCollector {
         )
     }
 
-    private func readCounters(at date: Date) -> [String: DeviceCounters] {
-        guard let matching = IOServiceMatching("IOMedia") else { return [:] }
+    /// Keeps one media per statistics owner: the shallowest candidate (the physical
+    /// whole disk), with the BSD name as a deterministic tie-breaker. Candidates
+    /// without an identified owner are kept as independent devices.
+    static func deduplicate(_ candidates: [MediaCandidate]) -> [String: DeviceCounters] {
+        var chosen: [UInt64: MediaCandidate] = [:]
+        var result: [String: DeviceCounters] = [:]
+
+        for candidate in candidates {
+            guard let owner = candidate.statisticsOwnerID else {
+                result[candidate.bsdName] = candidate.counters
+                continue
+            }
+            if let existing = chosen[owner] {
+                let isShallower = candidate.depth < existing.depth
+                let isSameDepthButEarlier = candidate.depth == existing.depth
+                    && candidate.bsdName.localizedStandardCompare(existing.bsdName) == .orderedAscending
+                if isShallower || isSameDepthButEarlier {
+                    chosen[owner] = candidate
+                }
+            } else {
+                chosen[owner] = candidate
+            }
+        }
+
+        for candidate in chosen.values {
+            result[candidate.bsdName] = candidate.counters
+        }
+        return result
+    }
+
+    private func readCandidates(at date: Date) -> [MediaCandidate] {
+        guard let matching = IOServiceMatching("IOMedia") else { return [] }
 
         var iterator: io_iterator_t = 0
         let result = IOServiceGetMatchingServices(
@@ -62,10 +108,10 @@ actor BlockIOCollector {
             &iterator
         )
 
-        guard result == KERN_SUCCESS else { return [:] }
+        guard result == KERN_SUCCESS else { return [] }
         defer { IOObjectRelease(iterator) }
 
-        var counters: [String: DeviceCounters] = [:]
+        var candidates: [MediaCandidate] = []
         var media = IOIteratorNext(iterator)
 
         while media != 0 {
@@ -77,25 +123,86 @@ actor BlockIOCollector {
             guard let properties = properties(for: media) else { continue }
             guard (properties["Whole"] as? Bool) == true else { continue }
             guard let deviceName = properties["BSD Name"] as? String else { continue }
-            guard let statistics = statistics(for: media) else { continue }
+
+            let statistics: [String: Any]
+            let ownerID: UInt64?
+            let depth: Int
+            if let owner = statisticsOwner(for: media) {
+                defer { IOObjectRelease(owner.entry) }
+                guard let ownerStatistics = property("Statistics", of: owner.entry) as? [String: Any] else {
+                    continue
+                }
+                statistics = ownerStatistics
+                ownerID = registryEntryID(of: owner.entry)
+                depth = owner.depth
+            } else if let searched = self.statistics(for: media) {
+                statistics = searched
+                ownerID = nil
+                depth = 0
+            } else {
+                continue
+            }
 
             guard statistics["Bytes (Read)"] is NSNumber,
                   statistics["Bytes (Write)"] is NSNumber else { continue }
 
-            counters[deviceName] = DeviceCounters(
-                capturedAt: date,
-                bytesRead: value("Bytes (Read)", in: statistics),
-                bytesWritten: value("Bytes (Write)", in: statistics),
-                readOperations: value("Operations (Read)", in: statistics),
-                writeOperations: value("Operations (Write)", in: statistics),
-                readErrors: value("Errors (Read)", in: statistics),
-                writeErrors: value("Errors (Write)", in: statistics),
-                readRetries: value("Retries (Read)", in: statistics),
-                writeRetries: value("Retries (Write)", in: statistics)
-            )
+            candidates.append(MediaCandidate(
+                bsdName: deviceName,
+                statisticsOwnerID: ownerID,
+                depth: depth,
+                counters: DeviceCounters(
+                    capturedAt: date,
+                    bytesRead: value("Bytes (Read)", in: statistics),
+                    bytesWritten: value("Bytes (Write)", in: statistics),
+                    readOperations: value("Operations (Read)", in: statistics),
+                    writeOperations: value("Operations (Write)", in: statistics),
+                    readErrors: value("Errors (Read)", in: statistics),
+                    writeErrors: value("Errors (Write)", in: statistics),
+                    readRetries: value("Retries (Read)", in: statistics),
+                    writeRetries: value("Retries (Write)", in: statistics)
+                )
+            ))
         }
 
-        return counters
+        return candidates
+    }
+
+    /// Walks the service-plane parent chain until the first `IOBlockStorageDriver`.
+    /// The returned entry is retained; the caller releases it.
+    private func statisticsOwner(for media: io_registry_entry_t) -> (entry: io_registry_entry_t, depth: Int)? {
+        var current = media
+        IOObjectRetain(current)
+        var depth = 0
+
+        while depth < 16 {
+            var parent: io_registry_entry_t = 0
+            let result = IORegistryEntryGetParentEntry(current, kIOServicePlane, &parent)
+            IOObjectRelease(current)
+            guard result == KERN_SUCCESS, parent != 0 else { return nil }
+            depth += 1
+            if IOObjectConformsTo(parent, "IOBlockStorageDriver") != 0 {
+                return (parent, depth)
+            }
+            current = parent
+        }
+
+        IOObjectRelease(current)
+        return nil
+    }
+
+    private func registryEntryID(of entry: io_registry_entry_t) -> UInt64? {
+        var identifier: UInt64 = 0
+        guard IORegistryEntryGetRegistryEntryID(entry, &identifier) == KERN_SUCCESS else { return nil }
+        return identifier
+    }
+
+    private func property(_ key: String, of entry: io_registry_entry_t) -> Any? {
+        IORegistryEntryCreateCFProperty(
+            entry,
+            key as CFString,
+            kCFAllocatorDefault,
+            0
+        )?.takeRetainedValue()
     }
 
     private func properties(for entry: io_registry_entry_t) -> [String: Any]? {
