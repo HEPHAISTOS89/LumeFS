@@ -117,8 +117,16 @@ so the recording can be checked against the running app.
 | 2:25 | Performance → **Show example** | `REPLAY` badge, “never replaces live measurements” caption; say aloud that macOS's native client does not implement pNFS |
 | 2:45 | Activity | Timeline entries with provenance badges for every state change above |
 
+Optional 30-second extension when a second writable volume is mounted:
+
+| Time | Action | Evidence that must be visible |
+| --- | --- | --- |
+| 2:50 | Placement (⌘7) → **Choose Source…** on a small model folder → pick the second volume → **Plan Copy (Dry Run)** | Plan card with file count, data, “Required (data + 20% margin)”, “Available … purgeable space not counted”, `ESTIMATE` badge; nothing created yet |
+| 3:00 | **Copy…** → read the dialog aloud → **Copy** | Confirmation names both paths and says the original is never deleted; progress bar advances; **Cancel** visible |
+| 3:15 | Result card, then Finder | “Copy completed”, size-verified count, “The original is untouched”; both trees exist; the journal lists `Planned`, `Started`, `Completed` |
+
 Restore the Warning slider to 20% after recording. Do not include volumes,
-mount sources or quota lines that reveal private names.
+mount sources, quota lines or placement paths that reveal private names.
 
 ## Honest fallback
 

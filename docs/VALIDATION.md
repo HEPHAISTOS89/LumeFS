@@ -92,10 +92,27 @@ result with a run ID or explicitly `NOT RUN`.
 | `main` before the batch (`a974413`) on `macos-15` | **FAILED** to compile: `ToolbarSpacer` / `sharedBackgroundVisibility` need the macOS 26 SDK | run 34730395087 |
 | Batch 1 — compiler guard for macOS 26 symbols | Passed, 55 tests, 2 expected NFS skips | run 34731726706 |
 | Batch 2 — SMART classification | Passed, 60 tests, 2 expected NFS skips | run 34731795277 |
-| Batch 3 — IOKit deduplication | see the pull-request checks for the run that follows commit `36e7a69` | PR #2 |
+| Batch 3 — IOKit deduplication (`36e7a69`) | Passed, 64 tests, 2 expected NFS skips | run 34731915138 |
+| Batch 4 — documentation alignment (`f409144`) | Passed, 64 tests, 2 expected NFS skips | run 34732061946 |
+| P1-5 — per-mount NFS (`nfsstat -m -f JSON`) (`69d51d9`) | Passed, 78 tests, 3 skips (NFS lab absent) | run 34732511600 |
+| P1-6 — per-user NFS (`nfsstat -u`) (`2acc25d`) | Passed, 91 tests, 4 skips | run 34732995272 |
+| P1-7 — process I/O attribution (`dfb0330`) | Passed, 97 tests, 4 skips | run 34733254509 |
+| P1-8 — alert history, export, notifications (`663b624`) | Passed, 116 tests, 4 skips | run 34734065939 |
+| P1-12 — benchmark uncached/cached passes (`bead331`) | Passed, 118 tests, 4 skips, no source warnings | run 34734354330 |
+| P1-10 — APFS enrichment (`a8c52a0`) | Passed, 121 tests, 4 skips | run 34734589894 |
+| P1-9 — quota administrator path (`7dd95b7`) | Passed, 123 tests, 4 skips | run 34734697640 |
+| P1-11 — placement plan and additive copy, first push (`637f125`) | **FAILED**: 2 of 15 new tests — `FileManager.copyItem` on a dangling symbolic link threw “doesn't exist”; plan, `copyfile(3)` copy, cancellation and journal tests passed | run 34735589219 |
+| P1-11 — `destinationOfSymbolicLink` + `createSymbolicLink` (`c525f3c`) | **FAILED** with the same message on the dangling link | run 34735873767 |
+| P1-11 — links recreated with `readlink(2)` / `symlink(2)`, dangling link added to the fixture | see the row appended below once the run completes | PR #2 |
+| Placement copy on a real second volume / NAS | `NOT RUN` — tests use a temporary tree on one APFS volume (clone path); cross-volume `copyfile` data path and progress callbacks are exercised only by inspection | — |
 | Live SMART `Failing` device | `NOT RUN` — no failing device available; the rule is covered by unit tests only | — |
 | I/O trend comparison with `iostat` | `NOT RUN` in this environment; procedure below | — |
-| App launch, window sizes, Light/Dark, VoiceOver | `NOT RUN` — no macOS desktop in the agent environment | — |
+| Notification delivery, save panel export, `NSOpenPanel` flows | `NOT RUN` — need an interactive macOS session; the planners/exporters behind them are unit-tested | — |
+| App launch, window sizes, Light/Dark, VoiceOver, ⌘1–⌘7 | `NOT RUN` — no macOS desktop in the agent environment | — |
+
+The skips are the live NFS integration tests, which skip themselves when no
+NFS mount is present on the runner. No test was disabled or weakened in this
+batch.
 
 ### Manual I/O trend comparison (to run on a Mac)
 

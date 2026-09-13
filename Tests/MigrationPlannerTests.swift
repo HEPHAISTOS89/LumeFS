@@ -26,7 +26,9 @@ final class MigrationPlannerTests: XCTestCase {
             try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             try payload(size, seed: UInt8(truncatingIfNeeded: path.utf8.count)).write(to: url)
         }
-        try FileManager.default.createSymbolicLink(at: source.appendingPathComponent("latest"), withDestinationURL: URL(fileURLWithPath: "model.bin"))
+        // A valid relative link and a dangling one: a copy must preserve both literally.
+        try FileManager.default.createSymbolicLink(atPath: source.appendingPathComponent("latest").path, withDestinationPath: "model.bin")
+        try FileManager.default.createSymbolicLink(atPath: source.appendingPathComponent("previous").path, withDestinationPath: "../gone/older.bin")
     }
 
     override func tearDownWithError() throws {
@@ -39,7 +41,7 @@ final class MigrationPlannerTests: XCTestCase {
         let inventory = try planner.inventory(of: source)
         XCTAssertEqual(inventory.fileCount, 3)
         XCTAssertEqual(inventory.directoryCount, 2)
-        XCTAssertEqual(inventory.symlinkCount, 1)
+        XCTAssertEqual(inventory.symlinkCount, 2)
         XCTAssertEqual(inventory.unreadableCount, 0)
         XCTAssertEqual(inventory.totalBytes, Int64(filePayloads.values.reduce(0, +)))
         XCTAssertEqual(inventory.largestFileBytes, 3 * 1_048_576)
@@ -147,6 +149,11 @@ final class MigrationPlannerTests: XCTestCase {
             try FileManager.default.destinationOfSymbolicLink(atPath: plan.destinationURL.appendingPathComponent("latest").path),
             "model.bin",
             "symbolic links are copied as links, not followed"
+        )
+        XCTAssertEqual(
+            try linkTarget(at: plan.destinationURL.appendingPathComponent("previous")),
+            "../gone/older.bin",
+            "dangling links are preserved literally"
         )
     }
 
@@ -320,8 +327,19 @@ final class MigrationPlannerTests: XCTestCase {
         for (path, _) in filePayloads {
             files[path] = try Data(contentsOf: source.appendingPathComponent(path))
         }
-        files["latest"] = Data(try FileManager.default.destinationOfSymbolicLink(atPath: source.appendingPathComponent("latest").path).utf8)
+        for link in ["latest", "previous"] {
+            files[link] = Data(try linkTarget(at: source.appendingPathComponent(link)).utf8)
+        }
         return files
+    }
+
+    /// `readlink(2)` directly, so a dangling link is read literally.
+    private func linkTarget(at url: URL) throws -> String {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX) + 1)
+        let length = readlink(url.path, &buffer, buffer.count - 1)
+        guard length >= 0 else { throw NSError(domain: NSPOSIXErrorDomain, code: Int(errno)) }
+        buffer[Int(length)] = 0
+        return String(cString: buffer)
     }
 
     private func entry(kind: MigrationJournalEntry.Kind, detail: String) -> MigrationJournalEntry {

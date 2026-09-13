@@ -378,16 +378,28 @@ actor MigrationExecutor {
             let sourcePrefix = plan.sourceURL.path.hasSuffix("/") ? plan.sourceURL.path : plan.sourceURL.path + "/"
             for case let url as URL in enumerator {
                 try Task.checkCancellation()
-                let relative = String(url.standardizedFileURL.path.dropFirst(sourcePrefix.count))
+                // The enumerator builds child URLs from the source URL, so the
+                // prefix matches literally; anything else must not be copied.
+                guard url.path.hasPrefix(sourcePrefix) else {
+                    throw MigrationCopyError.copyFailed(path: url.lastPathComponent, message: "outside the source tree")
+                }
+                let relative = String(url.path.dropFirst(sourcePrefix.count))
                 let target = plan.destinationURL.appendingPathComponent(relative)
-                let values = try url.resourceValues(forKeys: Set(keys))
+                let values: URLResourceValues
+                do {
+                    values = try url.resourceValues(forKeys: Set(keys))
+                } catch {
+                    throw MigrationCopyError.copyFailed(path: relative, message: "attributes: \(error.localizedDescription)")
+                }
 
                 if values.isSymbolicLink == true {
-                    // Recreate the link with its literal target; never follow it.
-                    let linkTarget = try fileManager.destinationOfSymbolicLink(atPath: url.path)
-                    try fileManager.createSymbolicLink(atPath: target.path, withDestinationPath: linkTarget)
+                    try recreateSymbolicLink(at: url, to: target, relativePath: relative)
                 } else if values.isDirectory == true {
-                    try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
+                    do {
+                        try fileManager.createDirectory(at: target, withIntermediateDirectories: true)
+                    } catch {
+                        throw MigrationCopyError.copyFailed(path: relative, message: "mkdir: \(error.localizedDescription)")
+                    }
                 } else if values.isRegularFile == true {
                     try copyFile(
                         from: url,
@@ -407,6 +419,22 @@ actor MigrationExecutor {
             return result(.cancelled)
         } catch {
             return result(.failed, failure: error.localizedDescription)
+        }
+    }
+
+    /// Recreates a link with its literal target through `readlink`/`symlink`, so
+    /// dangling links are preserved as-is and nothing is ever followed.
+    /// `symlink` fails with `EEXIST` rather than replacing an existing item.
+    private func recreateSymbolicLink(at source: URL, to target: URL, relativePath: String) throws {
+        var buffer = [CChar](repeating: 0, count: Int(PATH_MAX) + 1)
+        let length = readlink(source.path, &buffer, buffer.count - 1)
+        guard length >= 0 else {
+            throw MigrationCopyError.copyFailed(path: relativePath, message: "readlink: \(String(cString: strerror(errno)))")
+        }
+        buffer[Int(length)] = 0
+        let linkTarget = String(cString: buffer)
+        guard symlink(linkTarget, target.path) == 0 else {
+            throw MigrationCopyError.copyFailed(path: relativePath, message: "symlink: \(String(cString: strerror(errno)))")
         }
     }
 
