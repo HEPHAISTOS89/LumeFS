@@ -15,6 +15,27 @@ final class AlertRuleEngineTests: XCTestCase {
         XCTAssertEqual(alerts.first?.severity, .critical)
     }
 
+    func testSharedAPFSContainerCreatesOneCapacityIncident() {
+        let system = makeVolume(
+            id: "system", name: "Macintosh HD", mountPoint: "/",
+            total: 1_000, available: 60, isReadOnly: true, container: "disk3"
+        )
+        let data = makeVolume(
+            id: "data", name: "Macintosh HD - Data", mountPoint: "/System/Volumes/Data",
+            total: 1_000, available: 60, container: "disk3"
+        )
+
+        let alerts = AlertRuleEngine().evaluate(
+            volumes: [system, data], samples: [], nfs: .unavailable, previousNFS: nil
+        ).filter { $0.ruleID == "volume.capacity.critical" }
+
+        XCTAssertEqual(alerts.count, 1)
+        XCTAssertEqual(alerts.first?.id, "capacity-container-disk3")
+        XCTAssertEqual(alerts.first?.relatedVolumeID, "data", "the action should open the writable volume")
+        XCTAssertTrue(alerts.first?.message.contains("2 mounted volumes") == true)
+        XCTAssertTrue(alerts.first?.evidence.contains("Macintosh HD - Data") == true)
+    }
+
     func testCreatesNFSRetryAlertOnlyForNewRetries() {
         let previous = makeNFS(retries: 2)
         let current = makeNFS(retries: 4)
@@ -230,23 +251,36 @@ final class AlertRuleEngineTests: XCTestCase {
         )
     }
 
-    private func makeVolume(total: Int64, available: Int64, smartStatus: String? = "Verified") -> VolumeSnapshot {
-        VolumeSnapshot(
-            id: "test",
-            name: "Test",
-            mountPoint: "/Volumes/Test",
+    private func makeVolume(
+        id: String = "test",
+        name: String = "Test",
+        mountPoint: String = "/Volumes/Test",
+        total: Int64,
+        available: Int64,
+        isReadOnly: Bool = false,
+        container: String? = nil,
+        smartStatus: String? = "Verified"
+    ) -> VolumeSnapshot {
+        var volume = VolumeSnapshot(
+            id: id,
+            name: name,
+            mountPoint: mountPoint,
             source: "/dev/disk99",
             fileSystem: .apfs,
             fileSystemName: "apfs",
             totalBytes: total,
             availableBytes: available,
-            isReadOnly: false,
+            isReadOnly: isReadOnly,
             isLocal: true,
             capturedAt: Date(),
             smartStatus: smartStatus,
             apfsVolumeQuotaBytes: nil,
             apfsVolumeReserveBytes: nil
         )
+        if let container {
+            volume.apfs = APFSVolumeDetails(containerReference: container)
+        }
+        return volume
     }
 
     private func makeNFS(retries: UInt64) -> NFSClientMetrics {

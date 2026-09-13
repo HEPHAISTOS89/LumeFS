@@ -9,7 +9,7 @@ generate:
 	@command -v xcodegen >/dev/null || { echo "Install XcodeGen: brew install xcodegen"; exit 1; }
 	xcodegen generate
 
-build: generate
+build:
 	xcodebuild \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \
@@ -18,7 +18,7 @@ build: generate
 		-derivedDataPath $(DERIVED_DATA) \
 		build
 
-test: generate
+test:
 	xcodebuild \
 		-project $(PROJECT) \
 		-scheme $(SCHEME) \

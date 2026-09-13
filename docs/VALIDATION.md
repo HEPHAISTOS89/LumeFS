@@ -119,6 +119,26 @@ The skips are the live NFS integration tests, which skip themselves when no
 NFS mount is present on the runner. No test was disabled or weakened in this
 batch.
 
+## 2026-09-13 — judge-ready submission pass
+
+- `./scripts/check.sh` passed locally on macOS 26.6.2 / Xcode 26.6: 140 tests
+  executed, four expected live-NFS skips, zero failures. The required gitleaks
+  scan found no secrets.
+- `make run` built and opened the checked-in Xcode project without invoking
+  XcodeGen. This is the documented clean-clone path for judges with macOS 14+
+  and Xcode 16+.
+- The running Overview and Alerts views showed one capacity incident for the
+  shared `disk3` APFS container, with both `Macintosh HD` volumes named as
+  affected. The earlier two-alert presentation was no longer present.
+- The public README now maps every published challenge requirement to an
+  implemented feature, links the short demo and future-work sections, and
+  states that the official brief asks for a short demo rather than explicitly
+  requiring a video.
+
+The external-environment limits above remain unchanged: this pass did not add
+a pNFS-capable client, a remote quota server, a failing SMART device, or a
+second physical destination volume.
+
 ### Manual I/O trend comparison (to run on a Mac)
 
 The deduplicated “All devices” figure should follow the same trend as `iostat`

@@ -22,6 +22,50 @@ delete user files, or tune NFS. Its manual benchmark creates and removes one
 app-owned temporary file. Alert recommendations are guidance, not automated
 actions.
 
+## Run it
+
+You need macOS 14 or newer and Xcode 16 or newer. The Xcode project is checked
+in, so a judge can clone and launch the app without installing extra build
+tools:
+
+```bash
+git clone https://github.com/HEPHAISTOS89/LumeFS.git
+cd LumeFS
+make run
+```
+
+To run the same build and test gate as CI:
+
+```bash
+./scripts/check.sh
+```
+
+XcodeGen is needed only when intentionally regenerating `LumeFS.xcodeproj`
+from `project.yml`; normal builds use the checked-in project.
+
+## Challenge fit
+
+The [HackWesTex macOS file-system challenge](https://github.com/tactcomplabs/hackwestex27)
+asks for native tools that help administrators monitor storage health,
+performance, capacity, quotas, suspicious activity, and local or shared file
+systems. LumeFS maps those requirements to features that can be demonstrated:
+
+| Challenge need | What LumeFS shows or does |
+| --- | --- |
+| File-system and block-storage health | APFS capacity and metadata, SMART evidence when the device reports it, and cumulative I/O errors |
+| I/O performance | Live whole-device read/write rates, history, and a bounded benchmark |
+| Capacity and per-user quotas | Volume capacity, current-user quota evidence, configurable thresholds, and unavailable states instead of guessed values |
+| Useful administrator metrics | Native Overview, Volumes, Performance, Attribution, Activity, Placement, and Alerts views |
+| Capacity or unusual-user reporting | Explainable capacity alerts plus server-side NFS write/request burst alerts when `nfsd` data is available |
+| APFS and shared storage | Live APFS and NFS collection; an explicit platform boundary and labeled replay for pNFS |
+| Management action | A dry-run-first, additive copy workflow that preserves the original and never overwrites files |
+
+The official deliverables are also covered: this repository is public and MIT
+licensed, the commands above build and run the app, [the demo script](docs/DEMO.md)
+fits a short judging slot, and [Future work](#future-work) is documented below.
+The brief asks for a short demo, not specifically a video; a recording is a
+useful backup for the live presentation.
+
 ## The problem
 
 Model training, checkpoints, datasets, and caches can consume local or shared
@@ -140,7 +184,7 @@ details.
   image (Xcode 16); the maintainer also validates on Xcode 26. Code that uses
   macOS 26 SDK symbols is guarded with `#if compiler(>=6.2)` so older
   toolchains keep compiling with a native fallback.
-- XcodeGen only when regenerating `LumeFS.xcodeproj` from `project.yml`.
+- XcodeGen only when intentionally regenerating `LumeFS.xcodeproj` from `project.yml`.
 
 No NFS server is required to build or run the app. The optional local NFS lab
 requires administrator authorization because it changes `/etc/exports`, starts
@@ -170,15 +214,20 @@ xcodebuild \
   build
 ```
 
-To regenerate the project and run the app:
+To build the checked-in project and run the app:
 
 ```bash
-brew install xcodegen   # only if xcodegen is missing
 make run
 ```
 
-`make run` regenerates the Xcode project before building. Review the generated
-project diff before committing it.
+To regenerate the project after changing `project.yml`:
+
+```bash
+brew install xcodegen   # only if xcodegen is missing
+make generate
+```
+
+Review the generated project diff before committing it.
 
 ## Demo
 

@@ -64,6 +64,12 @@ All notable project changes will be documented here.
 
 ### Changed
 
+- Capacity alerts from APFS volumes in the same container are grouped into one
+  incident. The alert names every affected volume and opens the writable volume
+  when one is available, so the standard macOS System/Data pair no longer looks
+  like two separate disks have failed.
+- `make build`, `make test`, and `make run` now use the checked-in Xcode project;
+  XcodeGen is required only for the explicit `make generate` maintenance step.
 - Benchmark: the write now bypasses the buffer cache (`F_NOCACHE`) and is
   flushed with `F_FULLFSYNC` (fallback `fsync`, reported); the read is split
   into an uncached pass (`F_NOCACHE`, read-ahead off, never-resident pages) and
